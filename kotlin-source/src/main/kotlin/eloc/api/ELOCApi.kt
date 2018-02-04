@@ -406,7 +406,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @POST
     @Path("submit-bol")
     @Produces(MediaType.APPLICATION_JSON)
-    fun submitBol(bol: Bol): ApplyForLOCResult {
+    fun submitBol(bol: Bol): Response {
 
         println("Starting Bill of Lading submission")
         val seller = services.nodeInfo().legalIdentities.first()
@@ -453,13 +453,13 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return ApplyForLOCResult.Success("Transaction id ${result.tx.id} committed to ledger.")
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @POST
     @Path("submit-pl")
     @Produces(MediaType.APPLICATION_JSON)
-    fun submitPackingList(packingList: PackingList): ApplyForLOCResult {
+    fun submitPackingList(packingList: PackingList): Response {
 
         val buyer = services.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull() ?: throw RuntimeException("${packingList.buyerName} not found.")
         val seller = services.nodeInfo().legalIdentities.first()
@@ -506,13 +506,13 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return ApplyForLOCResult.Success("Transaction id ${result.tx.id} committed to ledger.")
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @GET
     @Path("approve-loc")
     @Produces(MediaType.APPLICATION_JSON)
-    fun approveLOCApplication(@QueryParam(value = "ref") ref: String): SignedTransaction {
+    fun approveLOCApplication(@QueryParam(value = "ref") ref: String): Response {
 
         val stateAndRef = services.vaultQueryBy<LOCApplicationState>().states.filter {
             it.ref.txhash.toString().equals(ref)
@@ -524,13 +524,13 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return result
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @POST
     @Path("create-trade")
     @Produces(MediaType.APPLICATION_JSON)
-    fun createTrade(inv: Inv): ApplyForLOCResult {
+    fun createTrade(inv: Inv): Response {
 
         println("Starting creation of trade")
 
@@ -562,13 +562,13 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return ApplyForLOCResult.Success("Transaction id ${result.tx.id} committed to ledger.")
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @GET
     @Path("pay-seller")
     @Produces(MediaType.APPLICATION_JSON)
-    fun paySeller(@QueryParam(value = "locId") locId: String): ApplyForLOCResult {
+    fun paySeller(@QueryParam(value = "locId") locId: String): Response {
 
         println("Paying seller")
 
@@ -577,13 +577,13 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return ApplyForLOCResult.Success("Transaction id ${result.tx.id} committed to ledger.")
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @GET
     @Path("pay-adviser")
     @Produces(MediaType.APPLICATION_JSON)
-    fun payAdviser(@QueryParam(value = "locId") locId: String): ApplyForLOCResult {
+    fun payAdviser(@QueryParam(value = "locId") locId: String): Response {
 
         println("Paying adviser")
 
@@ -592,13 +592,13 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return ApplyForLOCResult.Success("Transaction id ${result.tx.id} committed to ledger.")
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @GET
     @Path("pay-issuer")
     @Produces(MediaType.APPLICATION_JSON)
-    fun payIssuer(@QueryParam(value = "locId") locId: String): ApplyForLOCResult {
+    fun payIssuer(@QueryParam(value = "locId") locId: String): Response {
 
         println("Paying issuer")
 
@@ -607,7 +607,7 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return ApplyForLOCResult.Success("Transaction id ${result.tx.id} committed to ledger.")
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     /*@POST
