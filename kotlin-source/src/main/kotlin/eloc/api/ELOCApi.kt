@@ -13,6 +13,8 @@ import eloc.flow.payment.IssuerPaymentFlow
 import eloc.flow.payment.SellerPaymentFlow
 import eloc.state.*
 import net.corda.core.contracts.Amount
+import net.corda.core.contracts.ContractState
+import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
@@ -20,7 +22,8 @@ import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.messaging.startFlow
 import net.corda.core.messaging.vaultQueryBy
-import net.corda.core.transactions.SignedTransaction
+import net.corda.core.node.services.Vault
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
@@ -67,6 +70,18 @@ class ELOCApi(val services: CordaRPCOps) {
         return mapOf("peers" to nodeInfo
                 .map { it.legalIdentities.first().name }
                 .filter { it != myLegalName && it !in SERVICE_NODE_NAMES })
+    }
+
+    /**
+     * Get contents of vault
+     */
+    @GET
+    @Path("vault")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getVault(): Pair<List<StateAndRef<ContractState>>, List<StateAndRef<ContractState>>> {
+        val unconsumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).states
+        val consumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states
+        return Pair(unconsumedStates, consumedStates)
     }
 
     /**
@@ -333,7 +348,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @POST
     @Path("apply-for-loc")
     @Produces(MediaType.APPLICATION_JSON)
-    fun applyForLoc(loc: LocApp): SignedTransaction {
+    fun applyForLoc(loc: LocApp): Response {
         val applicantIdentity = services.nodeInfo().legalIdentities.first()
         val beneficiaryIdentity = services.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull() ?: throw RuntimeException("${loc.beneficiary} not found.")
         val issuerIdentity = services.partiesFromName(loc.issuer, exactMatch = false).singleOrNull() ?: throw RuntimeException("${loc.issuer} not found.")
@@ -377,7 +392,7 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
         println("Ending flow")
 
-        return result
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @GET
@@ -407,6 +422,11 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("submit-bol")
     @Produces(MediaType.APPLICATION_JSON)
     fun submitBol(bol: Bol): Response {
+
+        //Check bill of lading hasn't already been added
+        if (services.vaultQueryBy<BillofLadingState>().states.filter { it.state.data.props.billOfLadingID == bol.billOfLadingId }.count() > 0) {
+            return Response.accepted().entity("Bill of Lading already added").build()
+        }
 
         println("Starting Bill of Lading submission")
         val seller = services.nodeInfo().legalIdentities.first()
@@ -460,6 +480,11 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("submit-pl")
     @Produces(MediaType.APPLICATION_JSON)
     fun submitPackingList(packingList: PackingList): Response {
+
+        //Check bill of lading hasn't already been added
+        if (services.vaultQueryBy<PackingListState>().states.filter { it.state.data.props.billOfLadingNumber == packingList.billOfLadingNumber }.count() > 0) {
+            return Response.accepted().entity("Packing List already added").build()
+        }
 
         val buyer = services.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull() ?: throw RuntimeException("${packingList.buyerName} not found.")
         val seller = services.nodeInfo().legalIdentities.first()
