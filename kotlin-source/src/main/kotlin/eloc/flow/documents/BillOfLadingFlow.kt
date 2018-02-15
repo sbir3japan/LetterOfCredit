@@ -2,10 +2,9 @@ package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingAgreement
-import eloc.state.BillofLadingState
+import eloc.state.BillOfLadingState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
-import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -16,7 +15,7 @@ object BillOfLadingFlow {
 
     @InitiatingFlow
     @StartableByRPC
-    class UploadAndSend(val billOfLading: BillofLadingState) : FlowLogic<SignedTransaction>() {
+    class UploadAndSend(val billOfLading: BillOfLadingState) : FlowLogic<SignedTransaction>() {
         companion object {
             object ISSUING_INVOICE : ProgressTracker.Step("Creating and Signing Bill of Lading")
             object SENDING_INVOICE : ProgressTracker.Step("Sending Bill of Lading to Advisory bank")

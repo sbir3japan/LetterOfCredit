@@ -3,9 +3,9 @@ package eloc.flow
 import eloc.contract.LOCApplication
 import eloc.contract.LocDataStructures
 import eloc.flow.documents.BillOfLadingFlow
-import eloc.flow.payment.AdvisoryPaymentFlow
-import eloc.flow.payment.IssuerPaymentFlow
-import eloc.flow.payment.SellerPaymentFlow
+import eloc.flow.loc.AdvisoryPaymentFlow
+import eloc.flow.loc.IssuerPaymentFlow
+import eloc.flow.loc.SellerPaymentFlow
 import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.StateRef
@@ -195,7 +195,7 @@ class PaymentFlowTests {
         return LOCApplicationState(properties.applicant, properties.issuer, LOCApplication.Status.PENDING_ISSUER_REVIEW, properties, null)
     }
 
-    private fun billOfLadingState() : BillofLadingState {
+    private fun billOfLadingState() : BillOfLadingState {
         val properties = BillOfLadingProperties (
                 billOfLadingID = "LOC01",
                 issueDate = LocalDate.of(2017,12,14),
@@ -212,7 +212,7 @@ class PaymentFlowTests {
                 placeOfReceipt = LocDataStructures.Location(country = "USA", state ="Iowa", city = "Des Moines")
         )
 
-        return BillofLadingState(beneficiaryNode.info.chooseIdentity(),applicantNode.info.chooseIdentity(),advisingBankNode.info.chooseIdentity(),issuerNode.info.chooseIdentity(), Instant.now(), properties)
+        return BillOfLadingState(beneficiaryNode.info.chooseIdentity(),applicantNode.info.chooseIdentity(),advisingBankNode.info.chooseIdentity(),issuerNode.info.chooseIdentity(), Instant.now(), properties)
     }
 
     @After

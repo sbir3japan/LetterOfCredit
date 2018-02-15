@@ -70,4 +70,4 @@ crashlytics-build.properties
 
 # docs related
 docs/virtualenv/
-/kotlin-source/out/production/classes/eloc/api
+/kotlin-source/out

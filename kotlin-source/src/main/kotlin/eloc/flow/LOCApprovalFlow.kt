@@ -45,7 +45,7 @@ object LOCApprovalFlow {
             val LOCProps = LOCProperties(applicationProps, LocalDate.now())
 
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
-            val loc = LOCState(beneficiaryPaid = false, advisoryPaid = false, issuerPaid = false, issued = true, terminated = false, props = LOCProps)
+            val loc = LOCState(beneficiaryPaid = false, advisoryPaid = false, issuerPaid = false, issued = true, terminated = false, shipped = false, props = LOCProps)
 
             val builder = TransactionBuilder(notary = notary)
             val appStateAndRef = StateAndRef(state = applicationTxState, ref = reference)

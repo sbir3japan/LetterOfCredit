@@ -5,7 +5,7 @@ import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingAgreement
 import eloc.contract.LOCApplication
 import eloc.contracts.LOC
-import eloc.state.BillofLadingState
+import eloc.state.BillOfLadingState
 import eloc.state.InvoiceState
 import eloc.state.LOCProperties
 import eloc.state.LOCState
@@ -48,9 +48,9 @@ object Issuer {
     object WAITING_FOR_DOC_PRESENTATION_SIGNATURE : ProgressTracker.Step("Waiting for letter of credit doc presentation's sig. from buyer")
     object FINALIZING_DOC_PRESENTATION : ProgressTracker.Step("Finalizing letter of credit doc presentation")
 
-    object WAITING_FOR_PAYMENT : ProgressTracker.Step("Waiting from payment from applicant")
-    object VERIFYING_PAYMENT : ProgressTracker.Step("Verifying payment from applicant")
-    object SENDING_PAYMENT_SIG : ProgressTracker.Step("Sending payment tx signature to applicant")
+    object WAITING_FOR_PAYMENT : ProgressTracker.Step("Waiting from loc from applicant")
+    object VERIFYING_PAYMENT : ProgressTracker.Step("Verifying loc from applicant")
+    object SENDING_PAYMENT_SIG : ProgressTracker.Step("Sending loc tx signature to applicant")
 
 
 
@@ -327,7 +327,7 @@ object Issuer {
                 }
 
                 if (!it.tx.inputs.contains(paidLocRef)) {
-                    throw UnacceptablePaymentException("The payment transaction does not reference the paid BoL (ref ${paidLocRef}) in its inputs")
+                    throw UnacceptablePaymentException("The loc transaction does not reference the paid BoL (ref ${paidLocRef}) in its inputs")
                 }
 
                 subProtocol(ResolveTransactionsProtocol(it.tx.inputs.map { it.txhash }.toHashSet(), applicant))

@@ -1,7 +1,7 @@
 package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.state.BillofLadingState
+import eloc.state.BillOfLadingState
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
@@ -17,10 +17,10 @@ class BillOfLadingTimeline(val ref: String) : FlowLogic<List<Pair<Party, String>
     @Suspendable
     override fun call(): List<Pair<Party, String>> {
 
-        var priorStates = serviceHub.vaultService.queryBy<BillofLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
+        var priorStates = serviceHub.vaultService.queryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
             Pair(it.state.data.owner, convertDate(it.state.data.timestamp))
         }
-        val currentState = serviceHub.vaultService.queryBy<BillofLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
+        val currentState = serviceHub.vaultService.queryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
             Pair(it.state.data.owner, convertDate(it.state.data.timestamp))
         }
 

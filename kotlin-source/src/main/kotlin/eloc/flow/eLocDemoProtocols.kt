@@ -90,7 +90,7 @@ class eLocDemoProtocolSeller(
         )
 
         val paymentTx: SignedTransaction = subProtocol(buyer)
-        logger.info("Sale completed - We got payment from the issuer!\n\nFinal transaction is:\n\n${Emoji.renderIfSupported(paymentTx.tx)}")
+        logger.info("Sale completed - We got loc from the issuer!\n\nFinal transaction is:\n\n${Emoji.renderIfSupported(paymentTx.tx)}")
     }
 
 }
@@ -182,7 +182,7 @@ class eLocDemoProtocolIssuer(
         object WAITING_BUYER_HANDSHAKE : ProgressTracker.Step("Waiting connection from buyer")
         object LETTER_OF_CREDIT_APPLICATION : ProgressTracker.Step("Initiating the issuer protocol for letter of credit application")
         object DOCUMENT_PRESENTATION : ProgressTracker.Step("Initiating the issuer protocol for document presentation")
-        object APPLICANT_REPAYMENT : ProgressTracker.Step("Initiating the issuer protocol for applicant payment")
+        object APPLICANT_REPAYMENT : ProgressTracker.Step("Initiating the issuer protocol for applicant loc")
 
         fun tracker() = ProgressTracker(WAITING_BUYER_HANDSHAKE, LETTER_OF_CREDIT_APPLICATION, DOCUMENT_PRESENTATION, APPLICANT_REPAYMENT).apply {
             childrenFor[LETTER_OF_CREDIT_APPLICATION] = Issuer.elocApplicationProtocol.tracker()

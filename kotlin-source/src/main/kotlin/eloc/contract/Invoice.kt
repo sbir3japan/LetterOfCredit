@@ -69,7 +69,7 @@ class Invoice : Contract {
                     //"the invoice must not be assigned" by (issueOutput.assigned == false)
                     "the invoice ID must not be blank" using (issueOutput.props.invoiceID.length > 0)
                     "the term must be a positive number" using (issueOutput.props.term > 0)
-                    "the payment date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
+                    "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
                             > time)
                     "there must be goods associated with the invoice" using (issueOutput.props.goods.isNotEmpty())
                 }
@@ -83,7 +83,7 @@ class Invoice : Contract {
                     "the transaction must be signed by the owner" using (command.signers.contains(assignInput.owner.owningKey))
                     "the input invoice must not be assigned" using (assignInput.assigned == false)
                     "the output invoice must be assigned" using (assignOutput.assigned == true)
-                    "the payment date must be in the future" using (assignInput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC) > time)
+                    "the loc date must be in the future" using (assignInput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC) > time)
                 }
             }
             is Commands.Extinguish -> {
@@ -93,7 +93,7 @@ class Invoice : Contract {
                 requireThat {
                     "there shouldn't be an output state" using (extinguishOutput == null)
                     "the transaction must be signed by the owner" using (command.signers.contains(extinguishInput.owner.owningKey))
-                    "the payment date must be today or in the past" using (extinguishInput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC) < time)
+                    "the loc date must be today or in the past" using (extinguishInput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC) < time)
                 }
             }
         }

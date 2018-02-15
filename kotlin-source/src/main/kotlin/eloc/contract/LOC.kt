@@ -27,6 +27,7 @@ open class LOC : Contract {
     interface Commands : CommandData {
         class Issuance : TypeOnlyCommandData(), Commands
         class AddDocuments : TypeOnlyCommandData(), Commands
+        class ConfirmShipment : TypeOnlyCommandData(), Commands
         class AddPaymentToAdvisory :TypeOnlyCommandData(), Commands
         class AddPaymentToIssuer :TypeOnlyCommandData(), Commands
         class AddPaymentToBeneficiary : TypeOnlyCommandData(), Commands
@@ -75,6 +76,14 @@ open class LOC : Contract {
                 }
             }
 
+            is Commands.ConfirmShipment -> {
+                val output = tx.outputsOfType<LOCState>().single()
+                requireThat {
+                    "the transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
+                    "the LOC must be Issued" using (output.issued == true)
+                }
+            }
+
             is Commands.AddPaymentToAdvisory -> {
                 val input = tx.inputsOfType<LOCState>().single()
                 val output = tx.outputsOfType<LOCState>().single()
@@ -111,10 +120,5 @@ open class LOC : Contract {
                 }
             }
         }
-    }
-
-    fun generateIssue(notary: Party, beneficiaryPaid: Boolean, advisoryPaid: Boolean, issuerPaid: Boolean, issued: Boolean, terminated: Boolean, props: LOCProperties): TransactionBuilder {
-        val state = LOCState(beneficiaryPaid, advisoryPaid, issuerPaid, issued, terminated, props)
-        return TransactionBuilder( notary = notary ).withItems(state, Command(Commands.Issuance(), props.issuingBank.owningKey))
     }
 }

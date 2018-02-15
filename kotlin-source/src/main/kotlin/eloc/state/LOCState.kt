@@ -16,6 +16,7 @@ data class LOCState(
         val advisoryPaid: Boolean,
         val issuerPaid: Boolean,
         val issued: Boolean,
+        val shipped: Boolean,
         val terminated: Boolean,
         val props: LOCProperties
 
@@ -28,6 +29,7 @@ data class LOCState(
     fun beneficiaryPaid(): LOCState = copy(beneficiaryPaid = true)
     fun issuerPaid(): LOCState = copy(issuerPaid = true)
     fun advisoryPaid(): LOCState = copy(advisoryPaid = true)
+    fun shipped(): LOCState = copy(shipped = true)
 }
 
 @CordaSerializable
@@ -57,7 +59,6 @@ data class LOCProperties (
             typeCredit = applicationProps.typeCredit,
             amount = applicationProps.amount,
             invoiceRef = applicationProps.invoiceRef,
-            //TODO this probably should not be in the application
             expiryDate = applicationProps.expiryDate,
             portLoading = applicationProps.portLoading,
             portDischarge = applicationProps.portDischarge,

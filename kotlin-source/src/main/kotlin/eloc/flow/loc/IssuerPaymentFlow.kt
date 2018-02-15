@@ -1,9 +1,9 @@
-package eloc.flow.payment
+package eloc.flow.loc
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingAgreement
 import eloc.contract.LOC
-import eloc.state.BillofLadingState
+import eloc.state.BillOfLadingState
 import eloc.state.LOCState
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
@@ -20,7 +20,7 @@ object IssuerPaymentFlow {
     @StartableByRPC
     class MakePayment(val locId: String) : FlowLogic<SignedTransaction>() {
         companion object {
-            object GENERATING_APPLICATION_TRANSACTION : ProgressTracker.Step("Generating payment transaction.")
+            object GENERATING_APPLICATION_TRANSACTION : ProgressTracker.Step("Generating loc transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with our key.")
             object NOTARIZING_TRANSACTION : ProgressTracker.Step("Sending it to the notary.")
             object RECORDING_TRANSACTION : ProgressTracker.Step("Recording transaction.")
@@ -44,7 +44,7 @@ object IssuerPaymentFlow {
 
             // #1 Pull state from vault and reference to payee
             val locState = serviceHub.vaultService.queryBy<LOCState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
-            val bolState = serviceHub.vaultService.queryBy<BillofLadingState>().states.single { it.state.data.props.billOfLadingID == locId }
+            val bolState = serviceHub.vaultService.queryBy<BillOfLadingState>().states.single { it.state.data.props.billOfLadingID == locId }
             val payee = locState.state.data.props.issuingBank
             val newOwner = serviceHub.myInfo.legalIdentities.first()
 
@@ -60,7 +60,7 @@ object IssuerPaymentFlow {
             val builder = TransactionBuilder(notary = notary)
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
-            // #5 Let's create the payment to the beneficiary
+            // #5 Let's create the loc to the beneficiary
             Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 110), payee)
 
             // #6 Add other states
@@ -86,11 +86,11 @@ object IssuerPaymentFlow {
     @InitiatedBy(MakePayment::class)
     class ReceivePayment(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
         companion object {
-            object RECEIVING : ProgressTracker.Step("Receiving payment")
-            object VALIDATING : ProgressTracker.Step("Validating payment signature")
-            object SIGNING : ProgressTracker.Step("Signing payment")
+            object RECEIVING : ProgressTracker.Step("Receiving loc")
+            object VALIDATING : ProgressTracker.Step("Validating loc signature")
+            object SIGNING : ProgressTracker.Step("Signing loc")
             object SUCCESS : ProgressTracker.Step("Payment successful")
-            object BROADCAST : ProgressTracker.Step("Broadcast payment state to required parties")
+            object BROADCAST : ProgressTracker.Step("Broadcast loc state to required parties")
 
             fun tracker() = ProgressTracker(
                     RECEIVING,

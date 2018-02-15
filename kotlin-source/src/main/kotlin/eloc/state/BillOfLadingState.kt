@@ -5,10 +5,11 @@ import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
+import java.io.InputStream
 import java.time.Instant
 import java.time.LocalDate
 
-data class BillofLadingState(
+data class BillOfLadingState(
         val owner: Party,
         val buyer: Party,
         val advisory: Party,
@@ -36,5 +37,6 @@ data class BillOfLadingProperties (
         val shipper: LocDataStructures.Company?,
         val notify: LocDataStructures.Person?,
         val consignee: LocDataStructures.Company?,
-        val placeOfReceipt: LocDataStructures.Location?
+        val placeOfReceipt: LocDataStructures.Location?,
+        val attachment: InputStream? = null
 )

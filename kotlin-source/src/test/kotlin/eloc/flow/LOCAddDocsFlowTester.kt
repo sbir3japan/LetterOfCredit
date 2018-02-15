@@ -6,7 +6,7 @@ import eloc.flow.documents.BillOfLadingTimeline
 import eloc.flow.documents.PackingListFlow
 import eloc.helpers.bolProperties
 import eloc.helpers.plProperties
-import eloc.state.BillofLadingState
+import eloc.state.BillOfLadingState
 import eloc.state.PackingListState
 import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
@@ -52,7 +52,7 @@ class LOCAddDocsFlowTester {
     @Test
     fun `record bill of lading`() {
 
-        val initialState = BillofLadingState(beneficiaryNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), advisingBankNode.info.legalIdentities.first(), issuerNode.info.legalIdentities.first(), Instant.now(), bolProperties)
+        val initialState = BillOfLadingState(beneficiaryNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), advisingBankNode.info.legalIdentities.first(), issuerNode.info.legalIdentities.first(), Instant.now(), bolProperties)
 
         // kick off flow
         val sellerFlow = BillOfLadingFlow.UploadAndSend(initialState)
@@ -62,7 +62,7 @@ class LOCAddDocsFlowTester {
 
         listOf(beneficiaryNode, advisingBankNode).forEach { node ->
             val bolStates = node.database.transaction {
-                node.services.vaultService.queryBy<BillofLadingState>().states
+                node.services.vaultService.queryBy<BillOfLadingState>().states
             }
             assert(bolStates.count() > 0)
         }
@@ -90,7 +90,7 @@ class LOCAddDocsFlowTester {
     @Test
     fun `timeline`() {
 
-        val initialState = BillofLadingState(beneficiaryNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), advisingBankNode.info.legalIdentities.first(), issuerNode.info.legalIdentities.first(), Instant.now(), bolProperties)
+        val initialState = BillOfLadingState(beneficiaryNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), advisingBankNode.info.legalIdentities.first(), issuerNode.info.legalIdentities.first(), Instant.now(), bolProperties)
 
         // kick off flow
         val sellerFlow = BillOfLadingFlow.UploadAndSend(initialState)
@@ -99,7 +99,7 @@ class LOCAddDocsFlowTester {
         future.getOrThrow()
 
         val ref = beneficiaryNode.database.transaction {
-            beneficiaryNode.services.vaultService.queryBy<BillofLadingState>().states.first().state.data.props.billOfLadingID
+            beneficiaryNode.services.vaultService.queryBy<BillOfLadingState>().states.first().state.data.props.billOfLadingID
         }
 
         val timelineFlow = BillOfLadingTimeline(ref)

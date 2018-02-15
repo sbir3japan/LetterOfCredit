@@ -8,9 +8,10 @@ import eloc.flow.LOCApplicationFlow.Apply
 import eloc.flow.documents.BillOfLadingFlow
 import eloc.flow.documents.InvoiceFlow
 import eloc.flow.documents.PackingListFlow
-import eloc.flow.payment.AdvisoryPaymentFlow
-import eloc.flow.payment.IssuerPaymentFlow
-import eloc.flow.payment.SellerPaymentFlow
+import eloc.flow.loc.AdvisoryPaymentFlow
+import eloc.flow.loc.IssuerPaymentFlow
+import eloc.flow.loc.SellerPaymentFlow
+import eloc.flow.loc.ShippingFlow
 import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
@@ -31,6 +32,7 @@ import net.corda.finance.DOLLARS
 import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
 import org.slf4j.Logger
+import java.io.InputStream
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
@@ -221,10 +223,10 @@ class ELOCApi(val services: CordaRPCOps) {
     fun getActiveLocs(): List<Pair<String, LocSummary>> = listLOCApplications(LOCApplication.Status.APPROVED)
 
     /**
-     * Displays all loc states awaiting payment that exist in the node's vault.
+     * Displays all loc states awaiting loc that exist in the node's vault.
      */
     @GET
-    @Path("awaiting-payment")
+    @Path("awaiting-loc")
     @Produces(MediaType.APPLICATION_JSON)
     fun getAwaitingPaymentLocs(): List<Pair<String, LocSummary>> = listLOCApplications(LOCApplication.Status.APPROVED)
 
@@ -258,9 +260,9 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("get-bol")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getBol(@QueryParam(value = "ref") ref: String): BillofLadingState? {
+    fun getBol(@QueryParam(value = "ref") ref: String): BillOfLadingState? {
         println("fetching bol with ref $ref")
-        return services.vaultQueryBy<BillofLadingState>().states
+        return services.vaultQueryBy<BillOfLadingState>().states
                 .filter { it.state.data.props.billOfLadingID == ref }.map { it.state.data }.firstOrNull()
     }
 
@@ -424,7 +426,7 @@ class ELOCApi(val services: CordaRPCOps) {
     fun submitBol(bol: Bol): Response {
 
         //Check bill of lading hasn't already been added
-        if (services.vaultQueryBy<BillofLadingState>().states.filter { it.state.data.props.billOfLadingID == bol.billOfLadingId }.count() > 0) {
+        if (services.vaultQueryBy<BillOfLadingState>().states.filter { it.state.data.props.billOfLadingID == bol.billOfLadingId }.count() > 0) {
             return Response.accepted().entity("Bill of Lading already added").build()
         }
 
@@ -434,7 +436,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val advisingBank = services.partiesFromName(bol.advisingBank, exactMatch = false).singleOrNull() ?: throw RuntimeException("${bol.advisingBank} not found.")
         val issuingBank = services.partiesFromName(bol.issuingBank, exactMatch = false).singleOrNull() ?: throw RuntimeException("${bol.issuingBank} not found.")
 
-        val pros = BillOfLadingProperties(
+        val props = BillOfLadingProperties(
                 billOfLadingID = bol.billOfLadingId,
                 issueDate = LocalDate.parse(bol.issueDate.substringBefore('T')),
                 // For now we'll just set the carrier owner as the seller, in future we should have a node representing the carrier
@@ -463,9 +465,11 @@ class ELOCApi(val services: CordaRPCOps) {
                         country = bol.placeOfReceiptCountry,
                         state = null,
                         city = bol.placeOfReceiptCity
-                ))
+                ),
+                attachment = bol.attachment
+        )
 
-        val state = BillofLadingState(seller, buyer, advisingBank, issuingBank, Instant.now(), pros)
+        val state = BillOfLadingState(seller, buyer, advisingBank, issuingBank, Instant.now(), props)
 
         println("Starting flow")
         val result = services.startFlow(BillOfLadingFlow::UploadAndSend, state)
@@ -591,6 +595,21 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 
     @GET
+    @Path("ship")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun ship(@QueryParam(value = "ref") ref: String): Response {
+
+        println("Shipping")
+
+        val result = services.startFlow(ShippingFlow::Ship, ref)
+                .returnValue
+                .getOrThrow()
+        println("Ending flow")
+
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
+    }
+
+    @GET
     @Path("pay-seller")
     @Produces(MediaType.APPLICATION_JSON)
     fun paySeller(@QueryParam(value = "locId") locId: String): Response {
@@ -658,6 +677,7 @@ class ELOCApi(val services: CordaRPCOps) {
         if (loc.issuerPaid) return "Issuer Paid"
         if (loc.advisoryPaid) return "Advisory Paid"
         if (loc.beneficiaryPaid) return "Seller Paid"
+        if (loc.shipped) return "Shipped"
 
         return "Active"
     }
@@ -803,7 +823,9 @@ data class Bol(val billOfLadingId: String,
                val placeOfReceiptCity: String,
                val buyer: String,
                val advisingBank: String,
-               val issuingBank: String)
+               val issuingBank: String,
+
+               val attachment: InputStream? = null)
 
 data class PackingList(val issueDate: String,
                        val orderNumber: String,
