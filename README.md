@@ -1,10 +1,7 @@
 ![Corda](https://www.corda.net/wp-content/uploads/2016/11/fg005_corda_b.png)
 
-Project status: Early alpha. Expect bugs and rapid iterative development.
 
-### Voltron
-
-A [trade finance](http://www.investopedia.com/terms/t/tradefinance.asp) solution using the R3 Corda framework.
+A [trade finance](http://www.investopedia.com/terms/t/tradefinance.asp) demo using the R3 Corda framework.
 
 ### Technologies
 
@@ -17,9 +14,6 @@ A [trade finance](http://www.investopedia.com/terms/t/tradefinance.asp) solution
 * [git](https://help.github.com/articles/set-up-git/)
 
 ### Getting started
-
-Voltron is a Gradle build from a git repository. It relies on libraries provided by R3 which are
-in the public domain (Corda).
 
 #### Verify you have Git
 
