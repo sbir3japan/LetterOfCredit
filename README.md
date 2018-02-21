@@ -21,7 +21,7 @@ You should interact with this CorDapp using the web front-end. Each node exposes
 * Issuing Bank: `localhost:10007/web/loc/issuing`
 * Advising Bank: `localhost:10010/web/loc/advising`
 * Buyer: `localhost:10013/web/loc/buyer`
-* Seller: `localhost:10010/web/loc/seller`
+* Seller: `localhost:10016/web/loc/seller`
 
 When using the front-end:
 
