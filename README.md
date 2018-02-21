@@ -1,23 +1,8 @@
 ![Corda](https://www.corda.net/wp-content/uploads/2016/11/fg005_corda_b.png)
 
-# Option CorDapp
+# Letter of Credit demo CorDapp
 
-This CorDapp allows nodes to issue, trade and exercise call and put options.
-
-When issuing or trading an option, an oracle is used to ensure that the option is being exchanged for the correct 
-amount of cash, based on the oracle's knowledge of stock prices, volatility and the Black-Scholes model.
-
-The CorDapp is split into three modules:
-
-* Client: The flows required by non-oracle nodes to query the oracle and request their signature over a transaction 
-  including oracle data. Also includes a web front-end and a flow to self-issue cash
-* Oracle: The flows and services required by oracle nodes to respond to data and signing queries
-* Base: A collection of files that non-oracle and oracle nodes need to share, such as contract and state definitions
-
-There is also a series of tests under `src/`.
-
-The project is structured in this way so that non-oracle nodes only have to run the non-oracle flows and the web API, 
-while oracle nodes only have to run the oracle flows and services.
+This CorDapp allows nodes to engage in a letter of credit scenario. A buyer and seller have a trade deal facilitated by an issuing and advising bank. 
 
 # Pre-requisites:
   
