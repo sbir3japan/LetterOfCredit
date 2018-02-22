@@ -1,12 +1,9 @@
 package eloc.contract
 
-import eloc.state.PackingListProperties
 import eloc.state.PackingListState
 import net.corda.core.contracts.*
-import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
-import net.corda.core.transactions.TransactionBuilder
 
 /**
  * A packing list story...
@@ -49,9 +46,6 @@ class PackingList: Contract {
                 requireThat {
                     "there is no input state" using txInputStates.isEmpty()
                     "there is one output state" using (txOutputStates.size == 1)
-                    //"the transaction is signed by the buyer" by (command.signers.contains(txOutputStates.single().seller.owningKey))
-                    // Not required for demo
-                    // "the status is Draft" by (txOutputStates.single().status == Status.DRAFT)
                 }
             }
             is Commands.Update -> {
@@ -60,8 +54,6 @@ class PackingList: Contract {
                     "same buyer" using (txInputStates.single().seller == txOutputStates.single().seller)
                     "there is one input state" using (txInputStates.size == 1)
                     "there is one output state" using (txOutputStates.size == 1)
-                    // Not required for demo
-                    //"the status is Draft" by (txOutputStates.single().status == Status.DRAFT)
                 }
             }
             is Commands.Communicate -> {
@@ -71,20 +63,4 @@ class PackingList: Contract {
             }
         }
     }
-
-    /**
-     * Returns a TransactionBuilder with a new Packing State in Draft.
-     */
-    fun generateDraft(seller: Party, buyer: Party, notary: Party, props: PackingListProperties): TransactionBuilder {
-        val state = PackingListState( seller, buyer, buyer, buyer, Status.DRAFT, props)
-        return TransactionBuilder( notary = notary ).withItems(state, Command( Commands.Create(), seller.owningKey))
-    }
-
-    /**
-     * Act of communicating
-     */
-    fun communicate(seller: Party, tx: TransactionBuilder) {
-        tx.addCommand( Commands.Communicate(), seller.owningKey )
-    }
-
 }

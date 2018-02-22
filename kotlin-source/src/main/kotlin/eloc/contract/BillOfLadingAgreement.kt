@@ -33,8 +33,7 @@ class BillOfLadingAgreement : Contract {
 
     /** The Invoice contract needs to handle three commands
      * 1: IssueBL --
-     * 2: TransferAndEndorseBL --
-     * 3: TransferPossession --
+     * 2: TransferPossession --
      */
     override fun verify(tx: LedgerTransaction) {
         // We should only ever receive one command at a time, else throw an exception

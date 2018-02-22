@@ -28,12 +28,6 @@ class Invoice : Contract {
         val INVOICE_CONTRACT_ID = "eloc.contract.Invoice"
     }
 
-    fun generateInvoice(props: InvoiceProperties, owner: Party, buyer: Party, notary: Party) : TransactionBuilder {
-        val state = InvoiceState(owner, buyer, false, props)
-
-        return TransactionBuilder( notary = notary ).withItems(state, Command(Commands.Issue(), listOf(owner.owningKey)))
-    }
-
     interface Commands : CommandData {
         class Issue : TypeOnlyCommandData(), Commands
         class Assign : TypeOnlyCommandData(), Commands
@@ -66,7 +60,6 @@ class Invoice : Contract {
                     "there is no input state" using tx.inputsOfType<InvoiceState>().isEmpty()
                     "the transaction is signed by the invoice owner" using (command.signers.contains(issueOutput.owner.owningKey))
                     "the buyer and buyer must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
-                    //"the invoice must not be assigned" by (issueOutput.assigned == false)
                     "the invoice ID must not be blank" using (issueOutput.props.invoiceID.length > 0)
                     "the term must be a positive number" using (issueOutput.props.term > 0)
                     "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)

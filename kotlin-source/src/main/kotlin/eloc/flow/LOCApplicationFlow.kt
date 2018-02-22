@@ -96,14 +96,3 @@ object LOCApplicationFlow {
         }
     }
 }
-
-@CordaSerializable
-sealed class ApplyForLOCResult {
-    class Success(val message: String?) : ApplyForLOCResult() {
-        override fun toString(): String = "Success($message)"
-    }
-
-    class Failure(val message: String?) : ApplyForLOCResult() {
-        override fun toString(): String = "Failure($message)"
-    }
-}

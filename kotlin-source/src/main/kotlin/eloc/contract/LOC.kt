@@ -9,15 +9,6 @@ import net.corda.core.transactions.LedgerTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.finance.contracts.asset.Cash
 
-/** LOC contract - consists of the following commands
- * 1. Issue - create a new LOC agreement
- * 2. AddDocuments - add the billoflading, certoforigin, packinglist, and invoice
- * 3. DemandPresentation
- * 4. Termination
- *
- * Created by msreich on 4/13/17.
- ***/
-
 open class LOC : Contract {
     companion object {
         @JvmStatic

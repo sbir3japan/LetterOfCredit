@@ -4,10 +4,6 @@ import net.corda.core.contracts.Amount
 import net.corda.core.serialization.CordaSerializable
 import java.util.*
 
-/**
- * Created by N992551 on 30.06.2016.
- */
-
 object LocDataStructures {
 
     @CordaSerializable
@@ -75,10 +71,6 @@ object LocDataStructures {
         init {
             require(quantity > 0) { "The good quantity must be a positive value." }
         }
-
-        fun totalPrice(): Amount<Currency> {
-            return unitPrice.times(quantity)
-        }
     }
 
     @CordaSerializable
@@ -92,13 +84,5 @@ object LocDataStructures {
         REVOLVING,
         RED_CLAUSE,
         GREEN_CLAUSE
-        //TODO: ... additional types
     }
-
-    @CordaSerializable
-    enum class Confirmation {
-        CONFIRM,
-        WITHOUT
-    }
-
 }

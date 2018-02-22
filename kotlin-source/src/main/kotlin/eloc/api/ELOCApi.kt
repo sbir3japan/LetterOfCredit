@@ -654,24 +654,6 @@ class ELOCApi(val services: CordaRPCOps) {
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
-    /*@POST
-    @Path("claim-funds")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun claimFunds(claim: ClaimFundsParams): String {
-
-        val issuingX500 = CordaX500Name(claim.party,"London", "GB")
-
-        val issuingBank = services.wellKnownPartyFromX500Name(issuingX500) ?: throw RuntimeException("${claim.party} not found.")
-
-        println("Sending docs to issuer")
-        val result = services.startFlow(LOCDemandPresentationFlow::DemandInitiator, claim.ref, claim.ref, issuingBank)
-                .returnValue
-                .getOrThrow()
-        println("Ending flow")
-
-        return result.message
-    }*/
-
     private fun generateStatus(loc: LOCState): String {
         if (loc.terminated) return "Terminated"
         if (loc.issuerPaid) return "Issuer Paid"
