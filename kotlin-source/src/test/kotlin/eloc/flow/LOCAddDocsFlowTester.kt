@@ -8,13 +8,10 @@ import eloc.helpers.bolProperties
 import eloc.helpers.plProperties
 import eloc.state.BillOfLadingState
 import eloc.state.PackingListState
-import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.utilities.getOrThrow
-import net.corda.node.internal.StartedNode
 import net.corda.testing.node.MockNetwork
-import net.corda.testing.node.MockNetwork.MockNode
-import net.corda.testing.setCordappPackages
+import net.corda.testing.node.StartedMockNode
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -25,25 +22,24 @@ import java.time.Instant
  */
 
 class LOCAddDocsFlowTester {
-    private val net: MockNetwork = MockNetwork()
-    private lateinit var issuerNode: StartedNode<MockNode>
-    private lateinit var beneficiaryNode: StartedNode<MockNode>
-    private lateinit var advisingBankNode: StartedNode<MockNode>
-    private lateinit var buyerNode: StartedNode<MockNode>
-    private lateinit var notary: Party
+    private lateinit var net: MockNetwork
+    private lateinit var issuerNode: StartedMockNode
+    private lateinit var beneficiaryNode: StartedMockNode
+    private lateinit var advisingBankNode: StartedMockNode
+    private lateinit var buyerNode: StartedMockNode
 
     @Before
     fun setup() {
-        setCordappPackages("eloc.contract")
-        val nodes = net.createSomeNodes(numPartyNodes = 4)
-        advisingBankNode = nodes.partyNodes[0]
-        issuerNode = nodes.partyNodes[1]
-        beneficiaryNode = nodes.partyNodes[2]
-        buyerNode = nodes.partyNodes[3]
-        notary = nodes.notaryNode.info.legalIdentities.first()
+        net = MockNetwork(listOf("eloc.contract", "net.corda.finance.contracts.asset"))
+        advisingBankNode = net.createNode()
+        issuerNode = net.createNode()
+        beneficiaryNode = net.createNode()
+        buyerNode = net.createNode()
         net.runNetwork()
 
-        nodes.partyNodes.forEach {
+        val nodes = listOf(buyerNode, issuerNode, beneficiaryNode, advisingBankNode)
+
+        nodes.forEach {
             it.registerInitiatedFlow(BillOfLadingFlow.ReceiveBol::class.java)
             it.registerInitiatedFlow(PackingListFlow.ReceivePackingList::class.java)
         }
@@ -56,12 +52,12 @@ class LOCAddDocsFlowTester {
 
         // kick off flow
         val sellerFlow = BillOfLadingFlow.UploadAndSend(initialState)
-        val future = beneficiaryNode.services.startFlow(sellerFlow).resultFuture
+        val future = beneficiaryNode.startFlow(sellerFlow).toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
 
         listOf(beneficiaryNode, advisingBankNode).forEach { node ->
-            val bolStates = node.database.transaction {
+            val bolStates = node.transaction {
                 node.services.vaultService.queryBy<BillOfLadingState>().states
             }
             assert(bolStates.count() > 0)
@@ -75,12 +71,12 @@ class LOCAddDocsFlowTester {
 
         // kick off flow
         val sellerFlow = PackingListFlow.UploadAndSend(initialState)
-        val future = beneficiaryNode.services.startFlow(sellerFlow).resultFuture
+        val future = beneficiaryNode.startFlow(sellerFlow).toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
 
         listOf(beneficiaryNode, advisingBankNode).forEach { node ->
-            val plStates = node.database.transaction {
+            val plStates = node.transaction {
                 node.services.vaultService.queryBy<PackingListState>().states
             }
             assert(plStates.count() > 0)
@@ -94,16 +90,16 @@ class LOCAddDocsFlowTester {
 
         // kick off flow
         val sellerFlow = BillOfLadingFlow.UploadAndSend(initialState)
-        val future = beneficiaryNode.services.startFlow(sellerFlow).resultFuture
+        val future = beneficiaryNode.startFlow(sellerFlow).toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
 
-        val ref = beneficiaryNode.database.transaction {
+        val ref = beneficiaryNode.transaction {
             beneficiaryNode.services.vaultService.queryBy<BillOfLadingState>().states.first().state.data.props.billOfLadingID
         }
 
         val timelineFlow = BillOfLadingTimeline(ref)
-        val timelineFuture = beneficiaryNode.services.startFlow(timelineFlow).resultFuture
+        val timelineFuture = beneficiaryNode.startFlow(timelineFlow).toCompletableFuture()
         net.runNetwork()
         val result = timelineFuture.getOrThrow()
 

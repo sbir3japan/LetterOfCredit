@@ -2,10 +2,9 @@ package eloc
 
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
-import net.corda.node.services.transactions.SimpleNotaryService
-import net.corda.nodeapi.User
-import net.corda.nodeapi.internal.ServiceInfo
+import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.driver
+import net.corda.testing.node.User
 
 /**
  * This file is exclusively for being able to run your nodes through an IDE (as opposed to running deployNodes via
@@ -24,9 +23,9 @@ import net.corda.testing.driver.driver
  */
 
 fun main(args: Array<String>) {
-    driver(
+    driver(DriverParameters(
             isDebug = true,
-            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset"),
+            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset")),
             dsl = {
                 val user = User("user1", "test", permissions = setOf())
 
@@ -49,7 +48,5 @@ fun main(args: Array<String>) {
 
                 startWebserver(seller)
                 startWebserver(buyer)
-
-                waitForAllNodesToFinish()
             })
 }

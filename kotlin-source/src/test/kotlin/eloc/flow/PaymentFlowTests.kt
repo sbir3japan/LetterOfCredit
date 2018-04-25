@@ -10,12 +10,12 @@ import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
-import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.utilities.getOrThrow
 import net.corda.finance.DOLLARS
-import net.corda.node.internal.StartedNode
+import net.corda.testing.internal.chooseIdentity
 import net.corda.testing.node.MockNetwork
+import net.corda.testing.node.StartedMockNode
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
@@ -23,31 +23,29 @@ import org.junit.Test
 import java.time.LocalDate
 import java.time.Period
 import java.util.*
-import net.corda.testing.*
 import java.time.Instant
 
 class PaymentFlowTests {
-    init {
-        setCordappPackages("eloc.contract", "net.corda.finance.contracts.asset")
-    }
     lateinit var net: MockNetwork
-    private lateinit var applicantNode: StartedNode<MockNetwork.MockNode>
-    private lateinit var issuerNode: StartedNode<MockNetwork.MockNode>
-    private lateinit var beneficiaryNode: StartedNode<MockNetwork.MockNode>
-    private lateinit var advisingBankNode: StartedNode<MockNetwork.MockNode>
-    private lateinit var notary: Party
+    private lateinit var applicantNode: StartedMockNode
+    private lateinit var issuerNode: StartedMockNode
+    private lateinit var beneficiaryNode: StartedMockNode
+    private lateinit var advisingBankNode: StartedMockNode
+    private lateinit var notary: StartedMockNode
 
     @Before
     fun setup() {
-        net = MockNetwork()
-        val nodes = net.createSomeNodes(numPartyNodes = 4)
-        applicantNode = nodes.partyNodes[0]
-        issuerNode = nodes.partyNodes[1]
-        beneficiaryNode = nodes.partyNodes[2]
-        advisingBankNode = nodes.partyNodes[3]
-        notary = nodes.notaryNode.info.legalIdentities.first()
+        net = MockNetwork(listOf("eloc.contract", "net.corda.finance.contracts.asset"))
 
-        nodes.partyNodes.forEach {
+        applicantNode = net.createNode()
+        issuerNode = net.createNode()
+        beneficiaryNode = net.createNode()
+        advisingBankNode = net.createNode()
+        notary = net.defaultNotaryNode
+
+        val nodes = listOf(applicantNode, issuerNode, beneficiaryNode, advisingBankNode)
+
+        nodes.forEach {
             it.registerInitiatedFlow(AdvisoryPaymentFlow.ReceivePayment::class.java)
             it.registerInitiatedFlow(IssuerPaymentFlow.ReceivePayment::class.java)
             it.registerInitiatedFlow(SellerPaymentFlow.ReceivePayment::class.java)
@@ -59,33 +57,33 @@ class PaymentFlowTests {
     @Test
     fun `make payment to seller`() {
 
-        val futureApp = applicantNode.services.startFlow(LOCApplicationFlow.Apply(locApplicationState())).resultFuture
+        val futureApp = applicantNode.startFlow(LOCApplicationFlow.Apply(locApplicationState())).toCompletableFuture()
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
 
         // Run approval flow to create LOCState from application
         val stateAndRef = resultApp.tx.outRef<LOCApplicationState>(0)
-        val futureApproval = issuerNode.services.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).resultFuture
+        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
 
-        val futureBol = beneficiaryNode.services.startFlow(BillOfLadingFlow.UploadAndSend(billOfLadingState())).resultFuture
+        val futureBol = beneficiaryNode.startFlow(BillOfLadingFlow.UploadAndSend(billOfLadingState())).toCompletableFuture()
         net.runNetwork()
         futureBol.getOrThrow()
 
-        val futureCash = advisingBankNode.services.startFlow(SelfIssueCashFlow(1000000000.DOLLARS)).resultFuture
+        val futureCash = advisingBankNode.startFlow(SelfIssueCashFlow(1000000000.DOLLARS)).toCompletableFuture()
         net.runNetwork()
         futureCash.getOrThrow()
 
-        val future = advisingBankNode.services.startFlow(SellerPaymentFlow.MakePayment(locId = stateAndRef.state.data.props.letterOfCreditApplicationID)).resultFuture
+        val future = advisingBankNode.startFlow(SellerPaymentFlow.MakePayment(locId = stateAndRef.state.data.props.letterOfCreditApplicationID)).toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
 
-        val issuerState = issuerNode.database.transaction {
+        val issuerState = issuerNode.transaction {
             issuerNode.services.vaultService.queryBy<LOCState>().states.first()
         }
 
-        val advisingState = advisingBankNode.database.transaction {
+        val advisingState = advisingBankNode.transaction {
             advisingBankNode.services.vaultService.queryBy<LOCState>().states.first()
         }
 
@@ -96,33 +94,33 @@ class PaymentFlowTests {
     @Test
     fun `make payment to advisory`() {
 
-        val futureApp = applicantNode.services.startFlow(LOCApplicationFlow.Apply(locApplicationState())).resultFuture
+        val futureApp = applicantNode.startFlow(LOCApplicationFlow.Apply(locApplicationState())).toCompletableFuture()
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
 
         // Run approval flow to create LOCState from application
         val stateAndRef = resultApp.tx.outRef<LOCApplicationState>(0)
-        val futureApproval = issuerNode.services.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).resultFuture
+        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
 
-        val futureBol = beneficiaryNode.services.startFlow(BillOfLadingFlow.UploadAndSend(billOfLadingState())).resultFuture
+        val futureBol = beneficiaryNode.startFlow(BillOfLadingFlow.UploadAndSend(billOfLadingState())).toCompletableFuture()
         net.runNetwork()
         futureBol.getOrThrow()
 
-        val futureCash = issuerNode.services.startFlow(SelfIssueCashFlow(1000000000.DOLLARS)).resultFuture
+        val futureCash = issuerNode.startFlow(SelfIssueCashFlow(1000000000.DOLLARS)).toCompletableFuture()
         net.runNetwork()
         futureCash.getOrThrow()
 
-        val future = issuerNode.services.startFlow(AdvisoryPaymentFlow.MakePayment(locId = stateAndRef.state.data.props.letterOfCreditApplicationID)).resultFuture
+        val future = issuerNode.startFlow(AdvisoryPaymentFlow.MakePayment(locId = stateAndRef.state.data.props.letterOfCreditApplicationID)).toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
 
-        val issuerState = issuerNode.database.transaction {
+        val issuerState = issuerNode.transaction {
             issuerNode.services.vaultService.queryBy<LOCState>().states.first()
         }
 
-        val advisingState = advisingBankNode.database.transaction {
+        val advisingState = advisingBankNode.transaction {
             advisingBankNode.services.vaultService.queryBy<LOCState>().states.first()
         }
 
@@ -133,35 +131,36 @@ class PaymentFlowTests {
     @Test
     fun `make payment to issuer`() {
 
-        val futureApp = applicantNode.services.startFlow(LOCApplicationFlow.Apply(locApplicationState())).resultFuture
+        val futureApp = applicantNode.startFlow(LOCApplicationFlow.Apply(locApplicationState())).toCompletableFuture()
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
 
         // Run approval flow to create LOCState from application
         val stateAndRef = resultApp.tx.outRef<LOCApplicationState>(0)
-        val futureApproval = issuerNode.services.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).resultFuture
+        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
 
-        val futureBol = beneficiaryNode.services.startFlow(BillOfLadingFlow.UploadAndSend(billOfLadingState())).resultFuture
+        val futureBol = beneficiaryNode.startFlow(BillOfLadingFlow.UploadAndSend(billOfLadingState())).toCompletableFuture()
         net.runNetwork()
         futureBol.getOrThrow()
 
-        val futureCash = applicantNode.services.startFlow(SelfIssueCashFlow(1000000000.DOLLARS)).resultFuture
+        val futureCash = applicantNode.startFlow(SelfIssueCashFlow(1000000000.DOLLARS)).toCompletableFuture()
         net.runNetwork()
         futureCash.getOrThrow()
 
-        val future = applicantNode.services.startFlow(IssuerPaymentFlow.MakePayment(locId = stateAndRef.state.data.props.letterOfCreditApplicationID)).resultFuture
+        val future = applicantNode.startFlow(IssuerPaymentFlow.MakePayment(locId = stateAndRef.state.data.props.letterOfCreditApplicationID)).toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
 
-        val issuerState = issuerNode.database.transaction {
+        val issuerState = issuerNode.transaction {
             issuerNode.services.vaultService.queryBy<LOCState>().states.first()
         }
 
-        val advisingState = advisingBankNode.database.transaction {
+        val advisingState = advisingBankNode.transaction {
             advisingBankNode.services.vaultService.queryBy<LOCState>().states.first()
         }
+
 
         Assert.assertTrue(issuerState.state.data.issuerPaid)
         Assert.assertTrue(advisingState.state.data.issuerPaid)

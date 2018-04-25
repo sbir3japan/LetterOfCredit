@@ -12,9 +12,8 @@ import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.utilities.getOrThrow
 import net.corda.finance.DOLLARS
-import net.corda.node.internal.StartedNode
 import net.corda.testing.node.MockNetwork
-import net.corda.testing.setCordappPackages
+import net.corda.testing.node.StartedMockNode
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -28,20 +27,16 @@ import java.util.*
 
 class LOCApprovalFlowTester {
     lateinit var net: MockNetwork
-    lateinit var buyerNode: StartedNode<MockNetwork.MockNode>
-    lateinit var issuerNode: StartedNode<MockNetwork.MockNode>
-    lateinit var advisingBankNode: StartedNode<MockNetwork.MockNode>
-    lateinit var notary: Party
+    lateinit var buyerNode: StartedMockNode
+    lateinit var issuerNode: StartedMockNode
+    lateinit var advisingBankNode: StartedMockNode
 
     @Before
     fun setup() {
-        setCordappPackages("eloc.contract")
-        net = MockNetwork()
-        val nodes = net.createSomeNodes(numPartyNodes = 3)
-        issuerNode = nodes.partyNodes[0]
-        buyerNode = nodes.partyNodes[1]
-        advisingBankNode = nodes.partyNodes[2]
-        notary = nodes.notaryNode.info.legalIdentities.first()
+        net = MockNetwork(listOf("eloc.contract", "net.corda.finance.contracts.asset"))
+        issuerNode = net.createNode()
+        buyerNode = net.createNode()
+        advisingBankNode = net.createNode()
         net.runNetwork()
     }
 
@@ -49,21 +44,21 @@ class LOCApprovalFlowTester {
     fun `approve LOC application`() {
         val application = makeApplication(issuerNode.info.legalIdentities.first())
 
-        val appFuture = buyerNode.services.startFlow(LOCApplicationFlow.Apply(application)).resultFuture
+        val appFuture = buyerNode.startFlow(LOCApplicationFlow.Apply(application)).toCompletableFuture()
         net.runNetwork()
         appFuture.getOrThrow()
 
-        val locApp = issuerNode.database.transaction {
+        val locApp = issuerNode.transaction {
             issuerNode.services.vaultService.queryBy<LOCApplicationState>().states
         }
 
         assert(locApp.count() > 0)
 
-        val approvalFuture = issuerNode.services.startFlow(LOCApprovalFlow.Approve(locApp.first().ref)).resultFuture
+        val approvalFuture = issuerNode.startFlow(LOCApprovalFlow.Approve(locApp.first().ref)).toCompletableFuture()
         net.runNetwork()
         approvalFuture.getOrThrow()
 
-        val locState = issuerNode.database.transaction {
+        val locState = issuerNode.transaction {
             issuerNode.services.vaultService.queryBy<LOCState>().states
         }
 

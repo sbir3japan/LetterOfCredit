@@ -8,13 +8,11 @@ import net.corda.core.contracts.Amount
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.Party
-import net.corda.core.messaging.startFlow
 import net.corda.core.node.services.queryBy
 import net.corda.core.utilities.getOrThrow
 import net.corda.finance.DOLLARS
-import net.corda.node.internal.StartedNode
 import net.corda.testing.node.MockNetwork
-import net.corda.testing.setCordappPackages
+import net.corda.testing.node.StartedMockNode
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -28,22 +26,20 @@ import java.util.*
 
 class LOCApplicationFlowTester {
     lateinit var net: MockNetwork
-    lateinit var issuerNode: StartedNode<MockNetwork.MockNode>
-    lateinit var buyerNode: StartedNode<MockNetwork.MockNode>
-    lateinit var advisingBankNode: StartedNode<MockNetwork.MockNode>
-    lateinit var notary: Party
+    lateinit var issuerNode: StartedMockNode
+    lateinit var buyerNode: StartedMockNode
+    lateinit var advisingBankNode: StartedMockNode
 
     @Before
     fun setup() {
-        setCordappPackages("eloc.contract")
-        net = MockNetwork()
-        val nodes = net.createSomeNodes(3)
-        issuerNode = nodes.partyNodes[0]
-        buyerNode = nodes.partyNodes[1]
-        advisingBankNode = nodes.partyNodes[2]
-        notary = nodes.notaryNode.info.legalIdentities.first()
+        net = MockNetwork(listOf("eloc.contract", "net.corda.finance.contracts.asset"))
+        issuerNode = net.createNode()
+        buyerNode = net.createNode()
+        advisingBankNode = net.createNode()
 
-        nodes.partyNodes.forEach {
+        val nodes = listOf(issuerNode, buyerNode, advisingBankNode)
+
+        nodes.forEach {
             it.registerInitiatedFlow(InvoiceFlow.ReceiveInvoice::class.java)
         }
 
@@ -70,8 +66,8 @@ class LOCApplicationFlowTester {
         if (state.assigned) println("State created")
 
         println("Starting flow")
-        val future = issuerNode.services.startFlow(InvoiceFlow.UploadAndSend(buyerNode.info.legalIdentities.first(), state))
-                .resultFuture
+        val future = issuerNode.startFlow(InvoiceFlow.UploadAndSend(buyerNode.info.legalIdentities.first(), state))
+                .toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
         println("Ending flow")
@@ -82,12 +78,12 @@ class LOCApplicationFlowTester {
 
         val application = makeApplication(issuerNode.info.legalIdentities.first())
 
-        val future = buyerNode.services.startFlow(LOCApplicationFlow.Apply(application)).resultFuture
+        val future = buyerNode.startFlow(LOCApplicationFlow.Apply(application)).toCompletableFuture()
         net.runNetwork()
         future.getOrThrow()
 
         listOf(buyerNode, issuerNode).forEach { node ->
-            val locStates = node.database.transaction {
+            val locStates = node.transaction {
                 node.services.vaultService.queryBy<LOCApplicationState>().states
             }
             assert(locStates.count() > 0)

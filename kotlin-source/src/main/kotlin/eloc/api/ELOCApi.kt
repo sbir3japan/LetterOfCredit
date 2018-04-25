@@ -230,6 +230,26 @@ class ELOCApi(val services: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getAwaitingPaymentLocs(): List<Pair<String, LocSummary>> = listLOCApplications(LOCApplication.Status.APPROVED)
 
+
+
+    /**
+     * Displays all invoice states that exist in the node's vault.
+
+    @GET
+    @Path("invoices")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun invoicesSubscribe(): List<InvoiceState> {
+        println("fetching invoices")
+        val invoiceObservable = services.vaultTrack(InvoiceState::class.java).updates
+        invoiceObservable.subscribe { update ->
+            update.produced.forEach { state ->
+
+            }
+        }
+    }*/
+
+
+
     /**
      * Displays all invoice states that exist in the node's vault.
      */
@@ -249,7 +269,6 @@ class ELOCApi(val services: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getInvoice(@QueryParam(value = "ref") ref: String): InvoiceState? {
         println("fetching invoice with ref $ref")
-
         return services.vaultQueryBy<InvoiceState>().states
                 .filter { it.state.data.props.invoiceID == ref }.map { it.state.data }.firstOrNull()
     }
@@ -267,7 +286,7 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 
     /**
-     * Fetches invoice state that matches ref from the node's vault.
+     * Fetches bill of lading states that matches ref from the node's vault.
      */
     @GET
     @Path("get-bol-events")

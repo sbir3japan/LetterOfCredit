@@ -7,7 +7,6 @@ import eloc.state.PackingListProperties
 import net.corda.core.crypto.SecureHash
 import net.corda.finance.DOLLARS
 import java.time.LocalDate
-import net.corda.testing.*
 
 var invoiceProperties =
         InvoiceProperties(
@@ -82,7 +81,7 @@ val plProperties = PackingListProperties(
 val bolProperties = BillOfLadingProperties(
         billOfLadingID = "billOfLadingID",
         issueDate = LocalDate.now(),
-        carrierOwner = MINI_CORP,
+        carrierOwner = MINI_CORP.party,
         nameOfVessel = "Karaboudjan",
         descriptionOfGoods = listOf(LocDataStructures.Good(description="Crab meet cans",quantity = 10000,grossWeight = null)),
         dateOfShipment = LocalDate.now(),
