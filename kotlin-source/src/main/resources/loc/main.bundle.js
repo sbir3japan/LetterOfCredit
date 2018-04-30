@@ -18915,7 +18915,7 @@ var PortProviderService = (function () {
         this.buyer = 10013;
         this.seller = 10016;
         this.current = this.issuer;
-        this.production = false;
+        this.production = true;
         if (this.production) {
             var port = Number(location.port);
             this.buyer = port;
