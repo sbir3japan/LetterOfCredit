@@ -72,7 +72,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     directory "./build/nodes"
     node {
-        name "O=Controller,L=London,C=GB"
+        name "O=Notary,L=London,C=GB"
         notary = [validating : false]
         p2pPort 10002
         cordapps = ["net.corda:corda-finance:$corda_release_version"]
@@ -109,7 +109,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Visual Electronica Importers,L=IOWA,C=US"
+        name "O=Visual Electronica Importers,L=Iowa,C=US"
         p2pPort 10011
         rpcSettings {
             address("localhost:10012")
