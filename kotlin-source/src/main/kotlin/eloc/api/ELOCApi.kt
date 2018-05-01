@@ -41,7 +41,7 @@ import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
-val SERVICE_NODE_NAMES = listOf(CordaX500Name("Controller",  "London", "GB"),
+val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary",  "London", "GB"),
         CordaX500Name("NetworkMapService",  "London", "GB"))
 
 @Path("loc")
