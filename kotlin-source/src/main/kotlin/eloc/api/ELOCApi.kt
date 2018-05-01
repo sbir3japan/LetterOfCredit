@@ -126,7 +126,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("all-app")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocApplications(): List<Pair<String, LocSummary>> {
+    fun getAllLocApplications(): List<Pair<String, LocAppOrActiveData>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         return listLOCApplications(states)
     }
@@ -137,10 +137,10 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("all")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocs(): List<Pair<String, LocData>> {
+    fun getAllLocs(): List<Pair<String, LocDataA>> {
         val states = services.vaultQueryBy<LOCState>().states
         return states.map {
-            Pair(it.ref.toString(), locStateToLocData(it.state.data))
+            Pair(it.ref.toString(), locStateToLocDataA(it.state.data))
         }
     }
 
@@ -170,7 +170,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val locState = services.vaultQueryBy<LOCState>().states.find { it.ref.txhash.toString() == ref }
                 ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit state not found for this reference.").type(MediaType.APPLICATION_JSON).build()
 
-        val loc = letterOfCreditStateToLetterOfCredit(locState.state.data)
+        val loc = locStateToLocDataB(locState.state.data)
         loc.txRef = ref
         return Response.ok(loc, MediaType.APPLICATION_JSON).build()
     }
@@ -181,7 +181,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("awaiting-approval")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAwaitingApprovalLocs(): List<Pair<String, LocSummary>> {
+    fun getAwaitingApprovalLocs(): List<Pair<String, LocAppOrActiveData>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.PENDING_ISSUER_REVIEW }
         return listLOCApplications(statesWithCorrectStatus)
@@ -193,7 +193,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("active")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getActiveLocs(): List<Pair<String, LocSummary>> {
+    fun getActiveLocs(): List<Pair<String, LocAppOrActiveData>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.APPROVED }
         return listLOCApplications(statesWithCorrectStatus)
@@ -264,7 +264,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val advising = services.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.advisingBank} not found.").build()
 
-        val applicationProps = extractLocApplicationProperties(loc, me, beneficiary, issuing, advising)
+        val applicationProps = locApplicationDataToLocApplicationProperties(loc, me, beneficiary, issuing, advising)
 
         val application = LOCApplicationState(
                 owner = me,
@@ -315,7 +315,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val issuingBank = services.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.issuingBank} not found.").build()
 
-        val props = extractBillOfLadingProperties(billOfLading, me)
+        val props = billOfLadingDataToBillOfLadingProperties(billOfLading, me)
 
         val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), props)
 
@@ -334,41 +334,13 @@ class ELOCApi(val services: CordaRPCOps) {
         }
 
         val buyer = services.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull()
-                ?: throw RuntimeException("${packingList.buyerName} not found.")
+                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.buyerName} not found.").build()
         val advisingBank = services.partiesFromName(packingList.advisingBank, exactMatch = false).singleOrNull()
-                ?: throw RuntimeException("${packingList.advisingBank} not found.")
+                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.advisingBank} not found.").build()
         val issuingBank = services.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
-                ?: throw RuntimeException("${packingList.issuingBank} not found.")
+                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.issuingBank} not found.").build()
 
-        val plProperties = PackingListProperties(
-                issueDate = LocalDate.parse(packingList.issueDate.substringBefore('T')),
-                orderNumber = packingList.orderNumber,
-                sellersOrderNumber = packingList.sellersOrderNumber,
-                transportMethod = packingList.transportMethod,
-                nameOfVessel = packingList.nameOfVessel,
-                billOfLadingNumber = packingList.billOfLadingNumber,
-                seller = LocDataStructures.Company(
-                        name = packingList.sellerName,
-                        address = packingList.sellerAddress,
-                        phone = ""
-                ),
-                buyer = LocDataStructures.Company(
-                        name = packingList.buyerName,
-                        address = packingList.buyerAddress,
-                        phone = ""
-                ),
-                descriptionOfGoods = arrayListOf(
-                        LocDataStructures.PricedGood(
-                                description = packingList.goodsDescription,
-                                purchaseOrderRef = packingList.goodsPurchaseOrderRef,
-                                quantity = packingList.goodsQuantity,
-                                unitPrice = packingList.goodsUnitPrice.DOLLARS,
-                                grossWeight = LocDataStructures.Weight(packingList.goodsGrossWeight.toDouble(), LocDataStructures.WeightUnit.KG)
-                        )
-                ),
-                attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() })
-                )
-        )
+        val plProperties = packingListDataToPackingListProperties(packingList)
 
         val state = PackingListState(buyer, me, advisingBank, issuingBank, eloc.contract.PackingList.Status.DRAFT, plProperties)
 
@@ -398,21 +370,9 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("create-trade")
     fun createTrade(invoice: InvoiceData): Response {
         val buyer = services.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
+                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${invoice.buyerName} not found.").build()
 
-        if (buyer == null) {
-            throw RuntimeException("$invoice.buyer not found.")
-        }
-
-        val invoiceProperties = InvoiceProperties(
-                invoiceID = invoice.invoiceId,
-                seller = LocDataStructures.Company(invoice.sellerName, invoice.sellerAddress, ""),
-                buyer = LocDataStructures.Company(invoice.buyerName, invoice.buyerAddress, ""),
-                invoiceDate = LocalDate.parse(invoice.invoiceDate.substringBefore('T')),
-                term = invoice.term.toLong(),
-                attachmentHash = SecureHash.randomSHA256(),
-                goods = listOf(LocDataStructures.PricedGood(invoice.goodsDescription, invoice.goodsPurchaseOrderRef, invoice.goodsQuantity,
-                        invoice.goodsUnitPrice.DOLLARS, LocDataStructures.Weight(invoice.goodsGrossWeight.toDouble(),
-                        LocDataStructures.WeightUnit.KG))))
+        val invoiceProperties = invoiceDataToInvoiceProperties(invoice)
 
         val state = InvoiceState(me, buyer, true, invoiceProperties)
 
@@ -464,81 +424,9 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 }
 
-private fun locApplicationStateToLocApplicationData(state: LOCApplicationState): LocAppData {
-    val props = state.props
-
-    return LocAppData(
-            props.letterOfCreditApplicationID,
-            props.applicationDate.toString(),
-            props.typeCredit.toString(),
-            props.amount.quantity.toInt(),
-            props.amount.token.currencyCode,
-            props.expiryDate.toString(),
-            props.portLoading.country,
-            props.portLoading.city,
-            props.portLoading.address ?: "na",
-            props.portDischarge.country,
-            props.portDischarge.city,
-            props.portDischarge.address ?: "na",
-            props.goods.first().description,
-            props.goods.first().quantity,
-            props.goods.first().grossWeight!!.quantity.toInt(),
-            props.goods.first().grossWeight!!.unit.toString(),
-            props.goods.first().unitPrice.quantity.toInt(),
-            props.goods.first().purchaseOrderRef ?: "na",
-            props.placePresentation.country,
-            props.placePresentation.state ?: "na",
-            props.placePresentation.city,
-            props.lastShipmentDate.toString(),
-            props.periodPresentation.days,
-            props.beneficiary.name.organisation,
-            props.issuer.name.organisation,
-            props.applicant.name.organisation,
-            props.advisingBank.name.organisation)
-}
-
-private fun letterOfCreditStateToLetterOfCredit(state: LOCState): LetterOfCredit {
-    val props = state.props
-
-    return LetterOfCredit(
-            props.letterOfCreditID,
-            props.applicationDate.toString(),
-            props.issueDate.toString(),
-            props.typeCredit.toString(),
-            props.amount.quantity.toInt(),
-            props.amount.token.currencyCode,
-            props.expiryDate.toString(),
-            props.portLoading.country,
-            props.portLoading.city,
-            props.portLoading.address ?: "na",
-            props.portDischarge.country,
-            props.portDischarge.city,
-            props.portDischarge.address ?: "na",
-            props.descriptionGoods.first().description,
-            props.descriptionGoods.first().quantity,
-            props.descriptionGoods.first().grossWeight!!.quantity.toInt(),
-            props.descriptionGoods.first().grossWeight!!.unit.toString(),
-            props.descriptionGoods.first().unitPrice.quantity.toInt(),
-            props.descriptionGoods.first().purchaseOrderRef ?: "na",
-            props.placePresentation.country,
-            props.placePresentation.state ?: "na",
-            props.placePresentation.city,
-            props.latestShip.toString(),
-            props.periodPresentation.days,
-            props.beneficiary.name,
-            props.issuingBank.name,
-            props.applicant.name,
-            props.advisingBank.name,
-            state.beneficiaryPaid,
-            state.advisoryPaid,
-            state.issuerPaid,
-            state.issued,
-            state.terminated)
-}
-
-private fun listLOCApplications(states: List<StateAndRef<LOCApplicationState>>): List<Pair<String, LocSummary>> {
+private fun listLOCApplications(states: List<StateAndRef<LOCApplicationState>>): List<Pair<String, LocAppOrActiveData>> {
     return states.map {
-        Pair(it.ref.toString(), extractLocApplicationStateProperties(it.state.data))
+        Pair(it.ref.toString(), locApplicationStateToLocAppOrActiveData(it.state.data))
     }
 }
 
@@ -551,17 +439,106 @@ private fun generateStatus(loc: LOCState): String {
     return "Active"
 }
 
-private fun extractLocApplicationStateProperties(state: LOCApplicationState): LocSummary {
-    return LocSummary(state.props.beneficiary.name.organisation,
-            state.props.applicant.name.organisation,
-            state.props.amount.quantity.toInt(),
-            state.props.amount.token.currencyCode,
-            state.props.goods.first().description,
-            state.props.goods.first().purchaseOrderRef,
-            state.status.toString())
-}
+/**
+ * Converts the [LOCApplicationState] into the [LocAppOrActiveData] to be
+ * parsed by the front-end.
+ */
+private fun locApplicationStateToLocApplicationData(state: LOCApplicationState) = LocAppData(
+        state.props.letterOfCreditApplicationID,
+        state.props.applicationDate.toString(),
+        state.props.typeCredit.toString(),
+        state.props.amount.quantity.toInt(),
+        state.props.amount.token.currencyCode,
+        state.props.expiryDate.toString(),
+        state.props.portLoading.country,
+        state.props.portLoading.city,
+        state.props.portLoading.address ?: "na",
+        state.props.portDischarge.country,
+        state.props.portDischarge.city,
+        state.props.portDischarge.address ?: "na",
+        state.props.goods.first().description,
+        state.props.goods.first().quantity,
+        state.props.goods.first().grossWeight!!.quantity.toInt(),
+        state.props.goods.first().grossWeight!!.unit.toString(),
+        state.props.goods.first().unitPrice.quantity.toInt(),
+        state.props.goods.first().purchaseOrderRef ?: "na",
+        state.props.placePresentation.country,
+        state.props.placePresentation.state ?: "na",
+        state.props.placePresentation.city,
+        state.props.lastShipmentDate.toString(),
+        state.props.periodPresentation.days,
+        state.props.beneficiary.name.organisation,
+        state.props.issuer.name.organisation,
+        state.props.applicant.name.organisation,
+        state.props.advisingBank.name.organisation)
 
-private fun extractLocApplicationProperties(loc: LocAppData, applicant: Party, beneficiary: Party, issuing: Party, advising: Party): LOCApplicationProperties {
+/**
+ * Converts the [LOCApplicationState] into the [LocAppOrActiveData] to be
+ * parsed by the front-end.
+ */
+private fun locApplicationStateToLocAppOrActiveData(state: LOCApplicationState) = LocAppOrActiveData(
+        state.props.beneficiary.name.organisation,
+        state.props.applicant.name.organisation,
+        state.props.amount.quantity.toInt(),
+        state.props.amount.token.currencyCode,
+        state.props.goods.first().description,
+        state.props.goods.first().purchaseOrderRef,
+        state.status.toString())
+
+/**
+ * Converts the [InvoiceData] submitted from the front-end into the
+ * properties for a [InvoiceState].
+ */
+private fun invoiceDataToInvoiceProperties(invoiceData: InvoiceData) = InvoiceProperties(
+        invoiceID = invoiceData.invoiceId,
+        seller = LocDataStructures.Company(invoiceData.sellerName, invoiceData.sellerAddress, ""),
+        buyer = LocDataStructures.Company(invoiceData.buyerName, invoiceData.buyerAddress, ""),
+        invoiceDate = LocalDate.parse(invoiceData.invoiceDate.substringBefore('T')),
+        term = invoiceData.term.toLong(),
+        attachmentHash = SecureHash.randomSHA256(),
+        goods = listOf(LocDataStructures.PricedGood(invoiceData.goodsDescription, invoiceData.goodsPurchaseOrderRef, invoiceData.goodsQuantity,
+                invoiceData.goodsUnitPrice.DOLLARS, LocDataStructures.Weight(invoiceData.goodsGrossWeight.toDouble(),
+                LocDataStructures.WeightUnit.KG))))
+
+/**
+ * Converts the [PackingListData] submitted from the front-end into the
+ * properties for a [PackingListState].
+ */
+private fun packingListDataToPackingListProperties(packingListData: PackingListData) = PackingListProperties(
+        issueDate = LocalDate.parse(packingListData.issueDate.substringBefore('T')),
+        orderNumber = packingListData.orderNumber,
+        sellersOrderNumber = packingListData.sellersOrderNumber,
+        transportMethod = packingListData.transportMethod,
+        nameOfVessel = packingListData.nameOfVessel,
+        billOfLadingNumber = packingListData.billOfLadingNumber,
+        seller = LocDataStructures.Company(
+                name = packingListData.sellerName,
+                address = packingListData.sellerAddress,
+                phone = ""
+        ),
+        buyer = LocDataStructures.Company(
+                name = packingListData.buyerName,
+                address = packingListData.buyerAddress,
+                phone = ""
+        ),
+        descriptionOfGoods = arrayListOf(
+                LocDataStructures.PricedGood(
+                        description = packingListData.goodsDescription,
+                        purchaseOrderRef = packingListData.goodsPurchaseOrderRef,
+                        quantity = packingListData.goodsQuantity,
+                        unitPrice = packingListData.goodsUnitPrice.DOLLARS,
+                        grossWeight = LocDataStructures.Weight(packingListData.goodsGrossWeight.toDouble(), LocDataStructures.WeightUnit.KG)
+                )
+        ),
+        attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() })
+        )
+)
+
+/**
+ * Converts the [LocAppData] submitted from the front-end into the
+ * properties for a [LOCApplicationState].
+ */
+private fun locApplicationDataToLocApplicationProperties(loc: LocAppData, applicant: Party, beneficiary: Party, issuing: Party, advising: Party): LOCApplicationProperties {
     return LOCApplicationProperties(
             loc.applicationId,
             LocalDate.parse(loc.applicationDate.substringBefore('T')),
@@ -591,7 +568,7 @@ private fun extractLocApplicationProperties(loc: LocAppData, applicant: Party, b
  * Converts the [BillOfLadingData] submitted from the front-end into the
  * properties for a [BillOfLadingState].
  */
-private fun extractBillOfLadingProperties(billOfLading: BillOfLadingData, seller: Party): BillOfLadingProperties {
+private fun billOfLadingDataToBillOfLadingProperties(billOfLading: BillOfLadingData, seller: Party): BillOfLadingProperties {
     return BillOfLadingProperties(
             billOfLading.billOfLadingId,
             LocalDate.parse(billOfLading.issueDate.substringBefore('T')),
@@ -622,24 +599,61 @@ private fun extractBillOfLadingProperties(billOfLading: BillOfLadingData, seller
 }
 
 /**
- * Converts the [LOCState] into the [LocStateData] to be parsed by the
+ * Converts the [LOCState] into the [LocDataA] to be parsed by the
  * front-end.
  */
-private fun locStateToLocData(state: LOCState): LocData {
-    return LocData(
-            state.beneficiaryPaid,
-            state.advisoryPaid,
-            state.issuerPaid,
-            state.issued,
-            state.terminated,
-            state.props.beneficiary.name.organisation,
-            state.props.applicant.name.organisation,
-            state.props.advisingBank.name.organisation,
-            state.props.issuingBank.name.organisation,
-            state.props.amount.quantity.toInt(),
-            state.props.amount.token.currencyCode,
-            state.props.descriptionGoods.first().quantity,
-            state.props.descriptionGoods.first().purchaseOrderRef,
-            state.props.descriptionGoods.first().description,
-            generateStatus(state))
-}
+private fun locStateToLocDataA(state: LOCState) = LocDataA(
+        state.beneficiaryPaid,
+        state.advisoryPaid,
+        state.issuerPaid,
+        state.issued,
+        state.terminated,
+        state.props.beneficiary.name.organisation,
+        state.props.applicant.name.organisation,
+        state.props.advisingBank.name.organisation,
+        state.props.issuingBank.name.organisation,
+        state.props.amount.quantity.toInt(),
+        state.props.amount.token.currencyCode,
+        state.props.descriptionGoods.first().quantity,
+        state.props.descriptionGoods.first().purchaseOrderRef,
+        state.props.descriptionGoods.first().description,
+        generateStatus(state))
+
+/**
+ * Converts the [LOCState] into the [LocDataB] to be parsed by the
+ * front-end.
+ */
+private fun locStateToLocDataB(state: LOCState) = LocDataB(
+        state.props.letterOfCreditID,
+        state.props.applicationDate.toString(),
+        state.props.issueDate.toString(),
+        state.props.typeCredit.toString(),
+        state.props.amount.quantity.toInt(),
+        state.props.amount.token.currencyCode,
+        state.props.expiryDate.toString(),
+        state.props.portLoading.country,
+        state.props.portLoading.city,
+        state.props.portLoading.address ?: "na",
+        state.props.portDischarge.country,
+        state.props.portDischarge.city,
+        state.props.portDischarge.address ?: "na",
+        state.props.descriptionGoods.first().description,
+        state.props.descriptionGoods.first().quantity,
+        state.props.descriptionGoods.first().grossWeight!!.quantity.toInt(),
+        state.props.descriptionGoods.first().grossWeight!!.unit.toString(),
+        state.props.descriptionGoods.first().unitPrice.quantity.toInt(),
+        state.props.descriptionGoods.first().purchaseOrderRef ?: "na",
+        state.props.placePresentation.country,
+        state.props.placePresentation.state ?: "na",
+        state.props.placePresentation.city,
+        state.props.latestShip.toString(),
+        state.props.periodPresentation.days,
+        state.props.beneficiary.name,
+        state.props.issuingBank.name,
+        state.props.applicant.name,
+        state.props.advisingBank.name,
+        state.beneficiaryPaid,
+        state.advisoryPaid,
+        state.issuerPaid,
+        state.issued,
+        state.terminated)
