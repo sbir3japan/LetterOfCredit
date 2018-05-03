@@ -42,13 +42,12 @@ import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status.BAD_REQUEST
 import javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 
-val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary", "London", "GB"),
-        CordaX500Name("NetworkMapService", "London", "GB"))
-
 @Path("loc")
 class ELOCApi(val services: CordaRPCOps) {
     private val me = services.nodeInfo().legalIdentities.first()
     private val myLegalName = me.name
+    private val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary", "London", "GB"),
+            CordaX500Name("NetworkMapService", "London", "GB"))
 
     companion object {
         val logger: Logger = loggerFor<ELOCApi>()
@@ -63,8 +62,7 @@ class ELOCApi(val services: CordaRPCOps) {
     fun whoami() = mapOf("me" to myLegalName.organisation)
 
     /**
-     * Returns all parties registered with the network map. These names can be used to look up identities
-     * using the [IdentityService].
+     * Returns all parties registered with the network map.
      */
     @GET
     @Path("peers")
@@ -74,18 +72,6 @@ class ELOCApi(val services: CordaRPCOps) {
         return mapOf("peers" to nodeInfo
                 .map { it.legalIdentities.first().name }
                 .filter { it != myLegalName && it !in SERVICE_NODE_NAMES })
-    }
-
-    /**
-     * Get all states from the node's vault.
-     */
-    @GET
-    @Path("vault")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getVault(): Pair<List<StateAndRef<ContractState>>, List<StateAndRef<ContractState>>> {
-        val unconsumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria()).states
-        val consumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states
-        return Pair(unconsumedStates, consumedStates)
     }
 
     /**
@@ -121,18 +107,70 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 
     /**
-     * Displays all letter-of-credit application states that exist in the node's vault.
+     * Get all states from the node's vault.
+     */
+    @GET
+    @Path("vault")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getVault(): Pair<List<StateAndRef<ContractState>>, List<StateAndRef<ContractState>>> {
+        val unconsumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria()).states
+        val consumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states
+        return Pair(unconsumedStates, consumedStates)
+    }
+
+    /**
+     * Displays all LoC application states that exist in the node's vault.
      */
     @GET
     @Path("all-app")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocApplications(): List<Pair<String, LocAppOrActiveData>> {
+    fun getAllLocApplications(): List<Pair<String, LocAppDataSummary>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         return listLOCApplications(states)
     }
 
     /**
-     * Displays all active LoC states that exist in the node's vault.
+     * Displays all LoC application states awaiting confirmation that exist in the node's vault.
+     */
+    @GET
+    @Path("awaiting-approval")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getAwaitingApprovalLocs(): List<Pair<String, LocAppDataSummary>> {
+        val states = services.vaultQueryBy<LOCApplicationState>().states
+        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.PENDING_ISSUER_REVIEW }
+        return listLOCApplications(statesWithCorrectStatus)
+    }
+
+    /**
+     * Displays all approved LoC application states that exist in the node's vault.
+     */
+    @GET
+    @Path("active")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getActiveLocs(): List<Pair<String, LocAppDataSummary>> {
+        val states = services.vaultQueryBy<LOCApplicationState>().states
+        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.APPROVED }
+        return listLOCApplications(statesWithCorrectStatus)
+    }
+
+    /**
+     * Fetches LoC application state that matches ref from the node's vault.
+     */
+    @GET
+    @Path("get-loc-app")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getLocApp(@QueryParam(value = "ref") ref: String): Response {
+        val appState = services.vaultQueryBy<LOCApplicationState>().states.find { it.ref.txhash.toString() == ref }
+                ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit application for ref $ref not found.").build()
+
+        val locApplication = locApplicationStateToLocApplicationData(appState.state.data)
+        locApplication.txRef = ref
+
+        return Response.ok(locApplication, MediaType.APPLICATION_JSON).build()
+    }
+
+    /**
+     * Displays all LoC states that exist in the node's vault.
      */
     @GET
     @Path("all")
@@ -145,22 +183,6 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 
     /**
-     * Fetches LoC application state that matches ref from the node's vault.
-     */
-    @GET
-    @Path("get-loc-app")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getLocApp(@QueryParam(value = "ref") ref: String): Response {
-        val appState = services.vaultQueryBy<LOCApplicationState>().states.find { it.ref.txhash.toString() == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit application state not found for this reference.").type(MediaType.APPLICATION_JSON).build()
-
-        val locApplication = locApplicationStateToLocApplicationData(appState.state.data)
-        locApplication.txRef = ref
-
-        return Response.ok(locApplication, MediaType.APPLICATION_JSON).build()
-    }
-
-    /**
      * Fetches LoC state that matches ref from the node's vault.
      */
     @GET
@@ -168,35 +190,11 @@ class ELOCApi(val services: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getLoc(@QueryParam(value = "ref") ref: String): Response {
         val locState = services.vaultQueryBy<LOCState>().states.find { it.ref.txhash.toString() == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit state not found for this reference.").type(MediaType.APPLICATION_JSON).build()
+                ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit for ref $ref not found.").build()
 
         val loc = locStateToLocDataB(locState.state.data)
         loc.txRef = ref
         return Response.ok(loc, MediaType.APPLICATION_JSON).build()
-    }
-
-    /**
-     * Displays all LoC states awaiting confirmation that exist in the node's vault.
-     */
-    @GET
-    @Path("awaiting-approval")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getAwaitingApprovalLocs(): List<Pair<String, LocAppOrActiveData>> {
-        val states = services.vaultQueryBy<LOCApplicationState>().states
-        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.PENDING_ISSUER_REVIEW }
-        return listLOCApplications(statesWithCorrectStatus)
-    }
-
-    /**
-     * Displays all active LoC states that exist in the node's vault.
-     */
-    @GET
-    @Path("active")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getActiveLocs(): List<Pair<String, LocAppOrActiveData>> {
-        val states = services.vaultQueryBy<LOCApplicationState>().states
-        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.APPROVED }
-        return listLOCApplications(statesWithCorrectStatus)
     }
 
     /**
@@ -215,9 +213,11 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("get-invoice")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getInvoice(@QueryParam(value = "ref") ref: String): InvoiceState? {
-        return services.vaultQueryBy<InvoiceState>().states
-                .filter { it.state.data.props.invoiceID == ref }.map { it.state.data }.firstOrNull()
+    fun getInvoice(@QueryParam(value = "ref") ref: String): Response {
+        val states = services.vaultQueryBy<InvoiceState>().states
+        val stateAndRef = states.find { it.state.data.props.invoiceID == ref }
+                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
+        return Response.ok(stateAndRef.state.data, MediaType.APPLICATION_JSON).build()
     }
 
     /**
@@ -226,21 +226,12 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("get-bol")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getBol(@QueryParam(value = "ref") ref: String): BillOfLadingState? {
-        return services.vaultQueryBy<BillOfLadingState>().states
-                .filter { it.state.data.props.billOfLadingID == ref }.map { it.state.data }.firstOrNull()
-    }
+    fun getBol(@QueryParam(value = "ref") ref: String): Response {
+        val states = services.vaultQueryBy<BillOfLadingState>().states
+        val state = states.find { it.state.data.props.billOfLadingID == ref }
+                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
 
-    /**
-     * Fetches bill of lading states that matches ref from the node's vault.
-     */
-    @GET
-    @Path("get-bol-events")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getBolEvents(@QueryParam(value = "ref") ref: String): List<Pair<Party, String>> {
-        return services.startFlow(::BillOfLadingTimeline, ref)
-                .returnValue
-                .getOrThrow()
+        return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
     }
 
     /**
@@ -249,9 +240,44 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("get-packing-list")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getPackingList(@QueryParam(value = "ref") ref: String): PackingListState? {
-        return services.vaultQueryBy<PackingListState>().states
-                .filter { it.state.data.props.orderNumber == ref }.map { it.state.data }.firstOrNull()
+    fun getPackingList(@QueryParam(value = "ref") ref: String): Response {
+        val states = services.vaultQueryBy<PackingListState>().states
+        val state = states.find { it.state.data.props.orderNumber == ref }
+                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
+
+        return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
+    }
+
+    /**
+     * Fetches events concerning bill of lading state that matches ref.
+     */
+    @GET
+    @Path("get-bol-events")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getBolEvents(@QueryParam(value = "ref") ref: String): List<Pair<Party, String>> {
+        return services.startFlow(::BillOfLadingTimeline, ref).returnValue.getOrThrow()
+    }
+
+    @GET
+    @Path("loc-stats")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun locStats(): LocStats {
+        var awaitingApproval = 0
+        var active = 0
+        var awaitingPayment = 0
+        var rejected = 0
+
+        val states = services.vaultQueryBy<LOCApplicationState>().states.map { it.state }
+        states.forEach {
+            when (it.data.status) {
+                LOCApplication.Status.PENDING_ISSUER_REVIEW -> awaitingApproval++
+                LOCApplication.Status.PENDING_ADVISORY_REVIEW -> awaitingApproval++
+                LOCApplication.Status.APPROVED -> active++
+                LOCApplication.Status.REJECTED -> rejected++
+            }
+        }
+
+        return LocStats(awaitingApproval, active, awaitingPayment)
     }
 
     @POST
@@ -276,28 +302,6 @@ class ELOCApi(val services: CordaRPCOps) {
         val result = services.startFlow(::Apply, application).returnValue.getOrThrow()
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
-    }
-
-    @GET
-    @Path("loc-stats")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun locStats(): LocStats {
-        var awaitingApproval = 0
-        var active = 0
-        var awaitingPayment = 0
-        var rejected = 0
-
-        val states = services.vaultQueryBy<LOCApplicationState>().states.map { it.state }
-        states.forEach({
-            when (it.data.status) {
-                LOCApplication.Status.PENDING_ISSUER_REVIEW -> awaitingApproval++
-                LOCApplication.Status.PENDING_ADVISORY_REVIEW -> awaitingApproval++
-                LOCApplication.Status.APPROVED -> active++
-                LOCApplication.Status.REJECTED -> rejected++
-            }
-        })
-
-        return LocStats(awaitingApproval, active, awaitingPayment)
     }
 
     @POST
@@ -424,59 +428,17 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 }
 
-private fun listLOCApplications(states: List<StateAndRef<LOCApplicationState>>): List<Pair<String, LocAppOrActiveData>> {
+private fun listLOCApplications(states: List<StateAndRef<LOCApplicationState>>): List<Pair<String, LocAppDataSummary>> {
     return states.map {
-        Pair(it.ref.toString(), locApplicationStateToLocAppOrActiveData(it.state.data))
+        Pair(it.ref.toString(), locApplicationStateToLocApplicationDataSummary(it.state.data))
     }
 }
 
-private fun generateStatus(loc: LOCState): String {
-    if (loc.terminated) return "Terminated"
-    if (loc.issuerPaid) return "Issuer Paid"
-    if (loc.advisoryPaid) return "Advisory Paid"
-    if (loc.beneficiaryPaid) return "Seller Paid"
-    if (loc.shipped) return "Shipped"
-    return "Active"
-}
-
 /**
  * Converts the [LOCApplicationState] into the [LocAppOrActiveData] to be
  * parsed by the front-end.
  */
-private fun locApplicationStateToLocApplicationData(state: LOCApplicationState) = LocAppData(
-        state.props.letterOfCreditApplicationID,
-        state.props.applicationDate.toString(),
-        state.props.typeCredit.toString(),
-        state.props.amount.quantity.toInt(),
-        state.props.amount.token.currencyCode,
-        state.props.expiryDate.toString(),
-        state.props.portLoading.country,
-        state.props.portLoading.city,
-        state.props.portLoading.address ?: "na",
-        state.props.portDischarge.country,
-        state.props.portDischarge.city,
-        state.props.portDischarge.address ?: "na",
-        state.props.goods.first().description,
-        state.props.goods.first().quantity,
-        state.props.goods.first().grossWeight!!.quantity.toInt(),
-        state.props.goods.first().grossWeight!!.unit.toString(),
-        state.props.goods.first().unitPrice.quantity.toInt(),
-        state.props.goods.first().purchaseOrderRef ?: "na",
-        state.props.placePresentation.country,
-        state.props.placePresentation.state ?: "na",
-        state.props.placePresentation.city,
-        state.props.lastShipmentDate.toString(),
-        state.props.periodPresentation.days,
-        state.props.beneficiary.name.organisation,
-        state.props.issuer.name.organisation,
-        state.props.applicant.name.organisation,
-        state.props.advisingBank.name.organisation)
-
-/**
- * Converts the [LOCApplicationState] into the [LocAppOrActiveData] to be
- * parsed by the front-end.
- */
-private fun locApplicationStateToLocAppOrActiveData(state: LOCApplicationState) = LocAppOrActiveData(
+private fun locApplicationStateToLocApplicationDataSummary(state: LOCApplicationState) = LocAppDataSummary(
         state.props.beneficiary.name.organisation,
         state.props.applicant.name.organisation,
         state.props.amount.quantity.toInt(),
@@ -514,13 +476,11 @@ private fun packingListDataToPackingListProperties(packingListData: PackingListD
         seller = LocDataStructures.Company(
                 name = packingListData.sellerName,
                 address = packingListData.sellerAddress,
-                phone = ""
-        ),
+                phone = ""),
         buyer = LocDataStructures.Company(
                 name = packingListData.buyerName,
                 address = packingListData.buyerAddress,
-                phone = ""
-        ),
+                phone = ""),
         descriptionOfGoods = arrayListOf(
                 LocDataStructures.PricedGood(
                         description = packingListData.goodsDescription,
@@ -528,10 +488,8 @@ private fun packingListDataToPackingListProperties(packingListData: PackingListD
                         quantity = packingListData.goodsQuantity,
                         unitPrice = packingListData.goodsUnitPrice.DOLLARS,
                         grossWeight = LocDataStructures.Weight(packingListData.goodsGrossWeight.toDouble(), LocDataStructures.WeightUnit.KG)
-                )
-        ),
-        attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() })
-        )
+                )),
+        attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() }))
 )
 
 /**
@@ -597,63 +555,3 @@ private fun billOfLadingDataToBillOfLadingProperties(billOfLading: BillOfLadingD
                     billOfLading.placeOfReceiptCity),
             billOfLading.attachment)
 }
-
-/**
- * Converts the [LOCState] into the [LocDataA] to be parsed by the
- * front-end.
- */
-private fun locStateToLocDataA(state: LOCState) = LocDataA(
-        state.beneficiaryPaid,
-        state.advisoryPaid,
-        state.issuerPaid,
-        state.issued,
-        state.terminated,
-        state.props.beneficiary.name.organisation,
-        state.props.applicant.name.organisation,
-        state.props.advisingBank.name.organisation,
-        state.props.issuingBank.name.organisation,
-        state.props.amount.quantity.toInt(),
-        state.props.amount.token.currencyCode,
-        state.props.descriptionGoods.first().quantity,
-        state.props.descriptionGoods.first().purchaseOrderRef,
-        state.props.descriptionGoods.first().description,
-        generateStatus(state))
-
-/**
- * Converts the [LOCState] into the [LocDataB] to be parsed by the
- * front-end.
- */
-private fun locStateToLocDataB(state: LOCState) = LocDataB(
-        state.props.letterOfCreditID,
-        state.props.applicationDate.toString(),
-        state.props.issueDate.toString(),
-        state.props.typeCredit.toString(),
-        state.props.amount.quantity.toInt(),
-        state.props.amount.token.currencyCode,
-        state.props.expiryDate.toString(),
-        state.props.portLoading.country,
-        state.props.portLoading.city,
-        state.props.portLoading.address ?: "na",
-        state.props.portDischarge.country,
-        state.props.portDischarge.city,
-        state.props.portDischarge.address ?: "na",
-        state.props.descriptionGoods.first().description,
-        state.props.descriptionGoods.first().quantity,
-        state.props.descriptionGoods.first().grossWeight!!.quantity.toInt(),
-        state.props.descriptionGoods.first().grossWeight!!.unit.toString(),
-        state.props.descriptionGoods.first().unitPrice.quantity.toInt(),
-        state.props.descriptionGoods.first().purchaseOrderRef ?: "na",
-        state.props.placePresentation.country,
-        state.props.placePresentation.state ?: "na",
-        state.props.placePresentation.city,
-        state.props.latestShip.toString(),
-        state.props.periodPresentation.days,
-        state.props.beneficiary.name,
-        state.props.issuingBank.name,
-        state.props.applicant.name,
-        state.props.advisingBank.name,
-        state.beneficiaryPaid,
-        state.advisoryPaid,
-        state.issuerPaid,
-        state.issued,
-        state.terminated)

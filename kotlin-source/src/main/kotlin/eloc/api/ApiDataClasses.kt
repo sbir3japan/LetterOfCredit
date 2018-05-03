@@ -126,6 +126,18 @@ data class LocAppData(
 }
 
 /**
+ * How a letter-of-credit application is represented by the front-end in summarised form.
+ */
+data class LocAppDataSummary(
+        val beneficiary: String,
+        val applicant: String,
+        val amount: Int,
+        val currency: String,
+        val description: String,
+        val orderRef: String?,
+        val status: String)
+
+/**
  * The first way a letter-of-credit is represented by the front-end.
  */
 data class LocDataA(
@@ -183,16 +195,3 @@ data class LocDataB(
         val terminated: Boolean) {
     var txRef: String = ""
 }
-
-/**
- * How a letter-of-credit or letter-of-credit application is represented by
- * the front-end in summarised form.
- */
-data class LocAppOrActiveData(
-        val beneficiary: String,
-        val applicant: String,
-        val amount: Int,
-        val currency: String,
-        val description: String,
-        val orderRef: String?,
-        val status: String)
