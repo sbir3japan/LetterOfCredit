@@ -118,7 +118,7 @@ class LOCApplicationFlowTester {
         val application = LOCApplicationState(
                 owner = buyerNode.info.legalIdentities.first(),
                 issuer = issuer,
-                status = LOCApplication.Status.PENDING_ISSUER_REVIEW,
+                status = LOCApplicationStatus.PENDING_ISSUER_REVIEW,
                 props = applicationProps,
                 purchaseOrder = null
         )

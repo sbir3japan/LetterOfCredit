@@ -60,6 +60,7 @@ data class LOCProperties (
         val issuingBank: Party,
         val applicant: Party,
         val advisingBank: Party) {
+
     constructor(applicationProps: LOCApplicationProperties, issueDate: LocalDate) : this(
             letterOfCreditID = applicationProps.letterOfCreditApplicationID,
             applicationDate = applicationProps.applicationDate,

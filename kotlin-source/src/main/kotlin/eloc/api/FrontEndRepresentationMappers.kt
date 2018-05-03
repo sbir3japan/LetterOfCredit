@@ -3,11 +3,14 @@ package eloc.api
 import eloc.state.LOCApplicationState
 import eloc.state.LOCState
 
+/** These classes map state properties into a format that can be passed to the
+ * front-end as JSON. */
+
 /**
- * Converts the [LOCApplicationState] into the [LocAppData] to be
+ * Converts the [LOCApplicationState] into the [LocAppFormData] to be
  * parsed by the front-end.
  */
-fun locApplicationStateToLocApplicationData(state: LOCApplicationState) = LocAppData(
+fun locApplicationStateToLocApplicationFormData(state: LOCApplicationState) = LocAppFormData(
         applicationId = state.props.letterOfCreditApplicationID,
         applicationDate = state.props.applicationDate.toString(),
         typeCredit = state.props.typeCredit.toString(),
@@ -48,19 +51,13 @@ fun locStateToLocDataA(state: LOCState) = LocDataA(
         terminated = state.terminated,
         beneficiary = state.props.beneficiary.name.organisation,
         applicant = state.props.applicant.name.organisation,
-        // TODO: Different than below.
         advisoryBank = state.props.advisingBank.name.organisation,
-        // TODO: Different than below.
         issuingBank = state.props.issuingBank.name.organisation,
         amount = state.props.amount.quantity.toInt(),
         currency = state.props.amount.token.currencyCode,
-        // TODO: Different than below.
         quantity = state.props.descriptionGoods.first().quantity,
-        // TODO: Different than below.
         purchaseOrderRef = state.props.descriptionGoods.first().purchaseOrderRef,
-        // TODO: Different than below.
         description = state.props.descriptionGoods.first().description,
-        // TODO: Not included below.
         status = state.status)
 
 /**
@@ -101,3 +98,16 @@ fun locStateToLocDataB(state: LOCState) = LocDataB(
         issuerPaid = state.issuerPaid,
         issued = state.issued,
         terminated = state.terminated)
+
+/**
+ * Converts the [LOCApplicationState] into the [LocAppDataSummary] to be
+ * parsed by the front-end.
+ */
+fun locApplicationStateToLocApplicationDataSummary(state: LOCApplicationState) = LocAppDataSummary(
+        state.props.beneficiary.name.organisation,
+        state.props.applicant.name.organisation,
+        state.props.amount.quantity.toInt(),
+        state.props.amount.token.currencyCode,
+        state.props.goods.first().description,
+        state.props.goods.first().purchaseOrderRef,
+        state.status.toString())

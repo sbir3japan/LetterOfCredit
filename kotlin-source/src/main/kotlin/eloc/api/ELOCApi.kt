@@ -1,7 +1,5 @@
 package eloc.api
 
-import eloc.contract.LOCApplication
-import eloc.contract.LocDataStructures
 import eloc.flow.LOCApplicationFlow.Apply
 import eloc.flow.LOCApprovalFlow
 import eloc.flow.documents.BillOfLadingFlow
@@ -16,8 +14,6 @@ import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
-import net.corda.core.contracts.StateRef
-import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
@@ -33,8 +29,6 @@ import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
 import org.slf4j.Logger
 import java.time.Instant
-import java.time.LocalDate
-import java.time.Period
 import java.util.*
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
@@ -137,7 +131,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getAwaitingApprovalLocs(): List<Pair<String, LocAppDataSummary>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
-        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.PENDING_ISSUER_REVIEW }
+        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplicationStatus.PENDING_ISSUER_REVIEW }
         return listLOCApplications(statesWithCorrectStatus)
     }
 
@@ -149,7 +143,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getActiveLocs(): List<Pair<String, LocAppDataSummary>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
-        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplication.Status.APPROVED }
+        val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplicationStatus.APPROVED }
         return listLOCApplications(statesWithCorrectStatus)
     }
 
@@ -163,7 +157,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val appState = services.vaultQueryBy<LOCApplicationState>().states.find { it.ref.txhash.toString() == ref }
                 ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit application for ref $ref not found.").build()
 
-        val locApplication = locApplicationStateToLocApplicationData(appState.state.data)
+        val locApplication = locApplicationStateToLocApplicationFormData(appState.state.data)
         locApplication.txRef = ref
 
         return Response.ok(locApplication, MediaType.APPLICATION_JSON).build()
@@ -270,10 +264,10 @@ class ELOCApi(val services: CordaRPCOps) {
         val states = services.vaultQueryBy<LOCApplicationState>().states.map { it.state }
         states.forEach {
             when (it.data.status) {
-                LOCApplication.Status.PENDING_ISSUER_REVIEW -> awaitingApproval++
-                LOCApplication.Status.PENDING_ADVISORY_REVIEW -> awaitingApproval++
-                LOCApplication.Status.APPROVED -> active++
-                LOCApplication.Status.REJECTED -> rejected++
+                LOCApplicationStatus.PENDING_ISSUER_REVIEW -> awaitingApproval++
+                LOCApplicationStatus.PENDING_ADVISORY_REVIEW -> awaitingApproval++
+                LOCApplicationStatus.APPROVED -> active++
+                LOCApplicationStatus.REJECTED -> rejected++
             }
         }
 
@@ -282,7 +276,7 @@ class ELOCApi(val services: CordaRPCOps) {
 
     @POST
     @Path("apply-for-loc")
-    fun applyForLoc(loc: LocAppData): Response {
+    fun applyForLoc(loc: LocAppFormData): Response {
         val beneficiary = services.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.beneficiary} not found.").build()
         val issuing = services.partiesFromName(loc.issuer, exactMatch = false).singleOrNull()
@@ -290,12 +284,12 @@ class ELOCApi(val services: CordaRPCOps) {
         val advising = services.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.advisingBank} not found.").build()
 
-        val applicationProps = locApplicationDataToLocApplicationProperties(loc, me, beneficiary, issuing, advising)
+        val applicationProps = locApplicationFormDataToLocApplicationProperties(loc, me, beneficiary, issuing, advising)
 
         val application = LOCApplicationState(
                 owner = me,
                 issuer = issuing,
-                status = LOCApplication.Status.PENDING_ISSUER_REVIEW,
+                status = LOCApplicationStatus.PENDING_ISSUER_REVIEW,
                 props = applicationProps,
                 purchaseOrder = null)
 
@@ -432,126 +426,4 @@ private fun listLOCApplications(states: List<StateAndRef<LOCApplicationState>>):
     return states.map {
         Pair(it.ref.toString(), locApplicationStateToLocApplicationDataSummary(it.state.data))
     }
-}
-
-/**
- * Converts the [LOCApplicationState] into the [LocAppOrActiveData] to be
- * parsed by the front-end.
- */
-private fun locApplicationStateToLocApplicationDataSummary(state: LOCApplicationState) = LocAppDataSummary(
-        state.props.beneficiary.name.organisation,
-        state.props.applicant.name.organisation,
-        state.props.amount.quantity.toInt(),
-        state.props.amount.token.currencyCode,
-        state.props.goods.first().description,
-        state.props.goods.first().purchaseOrderRef,
-        state.status.toString())
-
-/**
- * Converts the [InvoiceData] submitted from the front-end into the
- * properties for a [InvoiceState].
- */
-private fun invoiceDataToInvoiceProperties(invoiceData: InvoiceData) = InvoiceProperties(
-        invoiceID = invoiceData.invoiceId,
-        seller = LocDataStructures.Company(invoiceData.sellerName, invoiceData.sellerAddress, ""),
-        buyer = LocDataStructures.Company(invoiceData.buyerName, invoiceData.buyerAddress, ""),
-        invoiceDate = LocalDate.parse(invoiceData.invoiceDate.substringBefore('T')),
-        term = invoiceData.term.toLong(),
-        attachmentHash = SecureHash.randomSHA256(),
-        goods = listOf(LocDataStructures.PricedGood(invoiceData.goodsDescription, invoiceData.goodsPurchaseOrderRef, invoiceData.goodsQuantity,
-                invoiceData.goodsUnitPrice.DOLLARS, LocDataStructures.Weight(invoiceData.goodsGrossWeight.toDouble(),
-                LocDataStructures.WeightUnit.KG))))
-
-/**
- * Converts the [PackingListData] submitted from the front-end into the
- * properties for a [PackingListState].
- */
-private fun packingListDataToPackingListProperties(packingListData: PackingListData) = PackingListProperties(
-        issueDate = LocalDate.parse(packingListData.issueDate.substringBefore('T')),
-        orderNumber = packingListData.orderNumber,
-        sellersOrderNumber = packingListData.sellersOrderNumber,
-        transportMethod = packingListData.transportMethod,
-        nameOfVessel = packingListData.nameOfVessel,
-        billOfLadingNumber = packingListData.billOfLadingNumber,
-        seller = LocDataStructures.Company(
-                name = packingListData.sellerName,
-                address = packingListData.sellerAddress,
-                phone = ""),
-        buyer = LocDataStructures.Company(
-                name = packingListData.buyerName,
-                address = packingListData.buyerAddress,
-                phone = ""),
-        descriptionOfGoods = arrayListOf(
-                LocDataStructures.PricedGood(
-                        description = packingListData.goodsDescription,
-                        purchaseOrderRef = packingListData.goodsPurchaseOrderRef,
-                        quantity = packingListData.goodsQuantity,
-                        unitPrice = packingListData.goodsUnitPrice.DOLLARS,
-                        grossWeight = LocDataStructures.Weight(packingListData.goodsGrossWeight.toDouble(), LocDataStructures.WeightUnit.KG)
-                )),
-        attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() }))
-)
-
-/**
- * Converts the [LocAppData] submitted from the front-end into the
- * properties for a [LOCApplicationState].
- */
-private fun locApplicationDataToLocApplicationProperties(loc: LocAppData, applicant: Party, beneficiary: Party, issuing: Party, advising: Party): LOCApplicationProperties {
-    return LOCApplicationProperties(
-            loc.applicationId,
-            LocalDate.parse(loc.applicationDate.substringBefore('T')),
-            LocDataStructures.CreditType.valueOf(loc.typeCredit),
-            issuing,
-            beneficiary,
-            applicant,
-            advising,
-            LocalDate.parse(loc.expiryDate.substringBefore('T')),
-            LocDataStructures.Port(loc.portLoadingCountry, loc.portLoadingCity, loc.portLoadingAddress, null, null),
-            LocDataStructures.Port(loc.portDischargeCountry, loc.portDischargeCity, loc.portDischargeAddress, null, null),
-            LocDataStructures.Location(loc.placePresentationCountry, loc.placePresentationState, loc.placePresentationCity),
-            LocalDate.parse(loc.lastShipmentDate.substringBefore('T')), // TODO does it make sense to include shipment date?
-            Period.ofDays(loc.periodPresentation),
-            listOf(LocDataStructures.PricedGood(
-                    loc.goodsDescription,
-                    loc.goodsPurchaseOrderRef,
-                    loc.goodsQuantity,
-                    Amount(loc.goodsUnitPrice.toLong(), Currency.getInstance(loc.currency)),
-                    LocDataStructures.Weight(loc.goodsWeight.toDouble(), LocDataStructures.WeightUnit.valueOf(loc.goodsWeightUnit)))),
-            ArrayList(),
-            StateRef(SecureHash.randomSHA256(), 0),
-            Amount(loc.amount.toLong(), Currency.getInstance(loc.currency)))
-}
-
-/**
- * Converts the [BillOfLadingData] submitted from the front-end into the
- * properties for a [BillOfLadingState].
- */
-private fun billOfLadingDataToBillOfLadingProperties(billOfLading: BillOfLadingData, seller: Party): BillOfLadingProperties {
-    return BillOfLadingProperties(
-            billOfLading.billOfLadingId,
-            LocalDate.parse(billOfLading.issueDate.substringBefore('T')),
-            // For now we'll just set the carrier owner as the seller, in future we should have a node representing the carrier
-            seller,
-            billOfLading.nameOfVessel,
-            listOf(LocDataStructures.Good(description = billOfLading.goodsDescription, quantity = billOfLading.goodsQuantity, grossWeight = null)),
-            LocDataStructures.Port(country = billOfLading.portOfLoadingCountry, city = billOfLading.portOfLoadingCity, address = billOfLading.portOfLoadingAddress, state = null, name = null),
-            LocDataStructures.Port(country = billOfLading.portOfDischargeCountry, city = billOfLading.portOfDischargeCity, address = billOfLading.portOfDischargeAddress, state = null, name = null),
-            LocDataStructures.Weight(
-                    billOfLading.grossWeight.toDouble(),
-                    LocDataStructures.WeightUnit.valueOf(billOfLading.grossWeightUnit)),
-            LocalDate.parse(billOfLading.dateOfShipment.substringBefore('T')),
-            null,
-            LocDataStructures.Person(
-                    billOfLading.notifyName,
-                    billOfLading.notifyAddress,
-                    billOfLading.notifyPhone),
-            LocDataStructures.Company(
-                    billOfLading.consigneeName,
-                    billOfLading.consigneeAddress,
-                    billOfLading.consigneePhone),
-            LocDataStructures.Location(
-                    billOfLading.placeOfReceiptCountry,
-                    null,
-                    billOfLading.placeOfReceiptCity),
-            billOfLading.attachment)
 }

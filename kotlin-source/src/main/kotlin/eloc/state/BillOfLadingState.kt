@@ -15,16 +15,15 @@ data class BillOfLadingState(
         val advisory: Party,
         val issuer: Party,
         val timestamp: Instant,
-        val props: BillOfLadingProperties
+        val props: BillOfLadingProperties) : LinearState {
 
-) : LinearState {
-    override val linearId = UniqueIdentifier( props.billOfLadingID )
+    override val linearId = UniqueIdentifier(props.billOfLadingID)
 
-    override val participants get() = listOf( owner, buyer, advisory, issuer )
+    override val participants get() = listOf(owner, buyer, advisory, issuer)
 }
 
 @CordaSerializable
-data class BillOfLadingProperties (
+data class BillOfLadingProperties(
         val billOfLadingID: String,
         val issueDate: LocalDate,
         val carrierOwner: net.corda.core.identity.Party,
@@ -38,5 +37,4 @@ data class BillOfLadingProperties (
         val notify: LocDataStructures.Person?,
         val consignee: LocDataStructures.Company?,
         val placeOfReceipt: LocDataStructures.Location?,
-        val attachment: InputStream? = null
-)
+        val attachment: InputStream? = null)

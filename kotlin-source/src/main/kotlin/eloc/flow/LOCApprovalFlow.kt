@@ -4,6 +4,7 @@ import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.LOC
 import eloc.contract.LOCApplication
 import eloc.state.LOCApplicationState
+import eloc.state.LOCApplicationStatus
 import eloc.state.LOCProperties
 import eloc.state.LOCState
 import net.corda.core.contracts.StateAndRef
@@ -50,7 +51,7 @@ object LOCApprovalFlow {
             val builder = TransactionBuilder(notary = notary)
             val appStateAndRef = StateAndRef(state = applicationTxState, ref = reference)
             builder.addInputState(appStateAndRef)
-            builder.addOutputState(application.copy(status = LOCApplication.Status.APPROVED), LOCApplication.LOC_APPLICATION_CONTRACT_ID)
+            builder.addOutputState(application.copy(status = LOCApplicationStatus.APPROVED), LOCApplication.LOC_APPLICATION_CONTRACT_ID)
             builder.addOutputState(loc, LOC.LOC_CONTRACT_ID)
             builder.addCommand(LOCApplication.Commands.Approve(), application.issuer.owningKey)
             builder.addCommand(LOC.Commands.Issuance(), application.issuer.owningKey)

@@ -4,6 +4,7 @@ import eloc.contract.LOCApplication
 import eloc.contract.LocDataStructures
 import eloc.state.LOCApplicationProperties
 import eloc.state.LOCApplicationState
+import eloc.state.LOCApplicationStatus
 import eloc.state.LOCState
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.StateRef
@@ -93,7 +94,7 @@ class LOCApprovalFlowTester {
         val application = LOCApplicationState(
                 owner = buyerNode.info.legalIdentities.first(),
                 issuer = issuer,
-                status = LOCApplication.Status.PENDING_ISSUER_REVIEW,
+                status = LOCApplicationStatus.PENDING_ISSUER_REVIEW,
                 props = applicationProps,
                 purchaseOrder = null
         )

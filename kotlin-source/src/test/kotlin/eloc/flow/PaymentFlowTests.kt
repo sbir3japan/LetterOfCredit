@@ -191,7 +191,7 @@ class PaymentFlowTests {
                 invoiceRef = StateRef(SecureHash.Companion.randomSHA256(),0)
         )
 
-        return LOCApplicationState(properties.applicant, properties.issuer, LOCApplication.Status.PENDING_ISSUER_REVIEW, properties, null)
+        return LOCApplicationState(properties.applicant, properties.issuer, LOCApplicationStatus.PENDING_ISSUER_REVIEW, properties, null)
     }
 
     private fun billOfLadingState() : BillOfLadingState {
