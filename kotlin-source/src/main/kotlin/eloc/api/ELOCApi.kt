@@ -118,9 +118,11 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("all-app")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocApplications(): List<Pair<String, LocAppDataSummary>> {
+    fun getAllLocApplications(): List<Pair<String, LOCApplicationState>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
-        return listLOCApplications(states)
+        return states.map {
+            Pair(it.ref.toString(), it.state.data)
+        }
     }
 
     /**
@@ -129,10 +131,12 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("awaiting-approval")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAwaitingApprovalLocs(): List<Pair<String, LocAppDataSummary>> {
+    fun getAwaitingApprovalLocs(): List<Pair<String, LOCApplicationState>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplicationStatus.PENDING_ISSUER_REVIEW }
-        return listLOCApplications(statesWithCorrectStatus)
+        return statesWithCorrectStatus.map {
+            Pair(it.ref.toString(), it.state.data)
+        }
     }
 
     /**
@@ -141,10 +145,12 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("active")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getActiveLocs(): List<Pair<String, LocAppDataSummary>> {
+    fun getActiveLocs(): List<Pair<String, LOCApplicationState>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplicationStatus.APPROVED }
-        return listLOCApplications(statesWithCorrectStatus)
+        return statesWithCorrectStatus.map {
+            Pair(it.ref.toString(), it.state.data)
+        }
     }
 
     /**
@@ -417,11 +423,5 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
-    }
-}
-
-private fun listLOCApplications(states: List<StateAndRef<LOCApplicationState>>): List<Pair<String, LocAppDataSummary>> {
-    return states.map {
-        Pair(it.ref.toString(), locApplicationStateToLocApplicationDataSummary(it.state.data))
     }
 }

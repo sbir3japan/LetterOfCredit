@@ -37,16 +37,3 @@ fun locApplicationStateToLocApplicationFormData(state: LOCApplicationState) = Lo
         issuer = state.props.issuer.name.organisation,
         applicant = state.props.applicant.name.organisation,
         advisingBank = state.props.advisingBank.name.organisation)
-
-/**
- * Converts the [LOCApplicationState] into the [LocAppDataSummary] to be
- * parsed by the front-end.
- */
-fun locApplicationStateToLocApplicationDataSummary(state: LOCApplicationState) = LocAppDataSummary(
-        state.props.beneficiary.name.organisation,
-        state.props.applicant.name.organisation,
-        state.props.amount.quantity.toInt(),
-        state.props.amount.token.currencyCode,
-        state.props.goods.first().description,
-        state.props.goods.first().purchaseOrderRef,
-        state.status.toString())
