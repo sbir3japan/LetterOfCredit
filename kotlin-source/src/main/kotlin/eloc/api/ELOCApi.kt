@@ -282,7 +282,7 @@ class ELOCApi(val services: CordaRPCOps) {
 
     @POST
     @Path("apply-for-loc")
-    fun applyForLoc(loc: LocAppFormData): Response {
+    fun applyForLoc(loc: LocApplicationData): Response {
         val beneficiary = services.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.beneficiary} not found.").build()
         val issuing = services.partiesFromName(loc.issuer, exactMatch = false).singleOrNull()
@@ -290,13 +290,11 @@ class ELOCApi(val services: CordaRPCOps) {
         val advising = services.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.advisingBank} not found.").build()
 
-        val applicationProps = locApplicationFormDataToLocApplicationProperties(loc, me, beneficiary, issuing, advising)
-
         val application = LOCApplicationState(
                 owner = me,
                 issuer = issuing,
                 status = LOCApplicationStatus.PENDING_ISSUER_REVIEW,
-                props = applicationProps,
+                props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising),
                 purchaseOrder = null)
 
         val result = services.startFlow(::Apply, application).returnValue.getOrThrow()
@@ -319,9 +317,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val issuingBank = services.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.issuingBank} not found.").build()
 
-        val props = billOfLadingDataToBillOfLadingProperties(billOfLading, me)
-
-        val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), props)
+        val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
 
         val result = services.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue.getOrThrow()
 
@@ -344,9 +340,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val issuingBank = services.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.issuingBank} not found.").build()
 
-        val plProperties = packingListDataToPackingListProperties(packingList)
-
-        val state = PackingListState(buyer, me, advisingBank, issuingBank, eloc.contract.PackingList.Status.DRAFT, plProperties)
+        val state = PackingListState(buyer, me, advisingBank, issuingBank, eloc.contract.PackingList.Status.DRAFT, packingList.toPackingListProperties())
 
         val result = services.startFlow(PackingListFlow::UploadAndSend, state)
                 .returnValue
@@ -376,9 +370,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val buyer = services.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${invoice.buyerName} not found.").build()
 
-        val invoiceProperties = invoiceDataToInvoiceProperties(invoice)
-
-        val state = InvoiceState(me, buyer, true, invoiceProperties)
+        val state = InvoiceState(me, buyer, true, invoice.toInvoiceProperties())
 
         val result = services.startFlow(InvoiceFlow::UploadAndSend, buyer, state)
                 .returnValue
