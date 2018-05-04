@@ -20,26 +20,6 @@ data class LocAppDataSummary(
         val status: String)
 
 /**
- * The first way a letter-of-credit is represented by the front-end.
- */
-data class LocDataA(
-        val beneficiaryPaid: Boolean,
-        val advisoryPaid: Boolean,
-        val issuerPaid: Boolean,
-        val issued: Boolean,
-        val terminated: Boolean,
-        val beneficiary: String,
-        val applicant: String,
-        val advisoryBank: String,
-        val issuingBank: String,
-        val amount: Int,
-        val currency: String,
-        val quantity: Int,
-        val purchaseOrderRef: String?,
-        val description: String,
-        val status: String)
-
-/**
  * The second way a letter-of-credit is represented by the front-end.
  */
 data class LocDataB(

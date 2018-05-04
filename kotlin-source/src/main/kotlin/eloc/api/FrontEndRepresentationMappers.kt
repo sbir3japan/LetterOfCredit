@@ -40,27 +40,6 @@ fun locApplicationStateToLocApplicationFormData(state: LOCApplicationState) = Lo
         advisingBank = state.props.advisingBank.name.organisation)
 
 /**
- * Converts the [LOCState] into the [LocDataA] to be parsed by the
- * front-end.
- */
-fun locStateToLocDataA(state: LOCState) = LocDataA(
-        beneficiaryPaid = state.beneficiaryPaid,
-        advisoryPaid = state.advisoryPaid,
-        issuerPaid = state.issuerPaid,
-        issued = state.issued,
-        terminated = state.terminated,
-        beneficiary = state.props.beneficiary.name.organisation,
-        applicant = state.props.applicant.name.organisation,
-        advisoryBank = state.props.advisingBank.name.organisation,
-        issuingBank = state.props.issuingBank.name.organisation,
-        amount = state.props.amount.quantity.toInt(),
-        currency = state.props.amount.token.currencyCode,
-        quantity = state.props.descriptionGoods.first().quantity,
-        purchaseOrderRef = state.props.descriptionGoods.first().purchaseOrderRef,
-        description = state.props.descriptionGoods.first().description,
-        status = state.status)
-
-/**
  * Converts the [LOCState] into the [LocDataB] to be parsed by the
  * front-end.
  */

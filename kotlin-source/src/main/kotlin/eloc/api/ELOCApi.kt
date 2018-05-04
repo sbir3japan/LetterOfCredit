@@ -169,10 +169,10 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("all")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocs(): List<Pair<String, LocDataA>> {
+    fun getAllLocs(): List<Pair<String, LOCState>> {
         val states = services.vaultQueryBy<LOCState>().states
         return states.map {
-            Pair(it.ref.toString(), locStateToLocDataA(it.state.data))
+            Pair(it.ref.toString(), it.state.data)
         }
     }
 
