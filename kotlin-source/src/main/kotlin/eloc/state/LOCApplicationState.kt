@@ -23,7 +23,7 @@ data class LOCApplicationProperties(
         val placePresentation: LocDataStructures.Location,
         val lastShipmentDate: LocalDate,
         val periodPresentation: Period,
-        val goods: List<LocDataStructures.PricedGood> = ArrayList(),
+        val descriptionGoods: List<LocDataStructures.PricedGood> = ArrayList(),
         val documentsRequired: List<String> = ArrayList(),
         val invoiceRef: StateRef,
         val amount: Amount<Currency>)

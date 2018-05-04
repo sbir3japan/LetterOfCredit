@@ -175,7 +175,7 @@ class PaymentFlowTests {
                 expiryDate = LocalDate.of(2017,12,14),
                 portLoading = LocDataStructures.Port("SG","Singapore",null,null,null),
                 portDischarge = LocDataStructures.Port("US","Oakland",null,null,null),
-                goods = listOf(LocDataStructures.PricedGood(description="Tiger balm",
+                descriptionGoods = listOf(LocDataStructures.PricedGood(description="Tiger balm",
                         quantity = 10000,
                         grossWeight = null,
                         unitPrice = Amount(1, Currency.getInstance("USD")),

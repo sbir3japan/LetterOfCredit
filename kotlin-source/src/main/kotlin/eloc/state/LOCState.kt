@@ -71,7 +71,7 @@ data class LOCProperties (
             expiryDate = applicationProps.expiryDate,
             portLoading = applicationProps.portLoading,
             portDischarge = applicationProps.portDischarge,
-            descriptionGoods = applicationProps.goods,
+            descriptionGoods = applicationProps.descriptionGoods,
             placePresentation = applicationProps.placePresentation,
             latestShip = applicationProps.lastShipmentDate,
             periodPresentation = applicationProps.periodPresentation,

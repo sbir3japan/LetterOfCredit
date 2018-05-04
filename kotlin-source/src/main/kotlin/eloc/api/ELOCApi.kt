@@ -118,9 +118,11 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("all-app")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocApplications(): List<Pair<String, LocAppDataSummary>> {
+    fun getAllLocApplications(): List<Pair<String, LOCApplicationState>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
-        return listLOCApplications(states)
+        return states.map {
+            Pair(it.ref.toString(), it.state.data)
+        }
     }
 
     /**
@@ -129,10 +131,12 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("awaiting-approval")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAwaitingApprovalLocs(): List<Pair<String, LocAppDataSummary>> {
+    fun getAwaitingApprovalLocs(): List<Pair<String, LOCApplicationState>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplicationStatus.PENDING_ISSUER_REVIEW }
-        return listLOCApplications(statesWithCorrectStatus)
+        return statesWithCorrectStatus.map {
+            Pair(it.ref.toString(), it.state.data)
+        }
     }
 
     /**
@@ -141,10 +145,12 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("active")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getActiveLocs(): List<Pair<String, LocAppDataSummary>> {
+    fun getActiveLocs(): List<Pair<String, LOCApplicationState>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
         val statesWithCorrectStatus = states.filter { it.state.data.status == LOCApplicationStatus.APPROVED }
-        return listLOCApplications(statesWithCorrectStatus)
+        return statesWithCorrectStatus.map {
+            Pair(it.ref.toString(), it.state.data)
+        }
     }
 
     /**
@@ -157,10 +163,9 @@ class ELOCApi(val services: CordaRPCOps) {
         val appState = services.vaultQueryBy<LOCApplicationState>().states.find { it.ref.txhash.toString() == ref }
                 ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit application for ref $ref not found.").build()
 
-        val locApplication = locApplicationStateToLocApplicationFormData(appState.state.data)
-        locApplication.txRef = ref
+        val locApplication = appState.state.data
 
-        return Response.ok(locApplication, MediaType.APPLICATION_JSON).build()
+        return Response.ok(Pair(ref, locApplication), MediaType.APPLICATION_JSON).build()
     }
 
     /**
@@ -169,10 +174,10 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("all")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocs(): List<Pair<String, LocDataA>> {
+    fun getAllLocs(): List<Pair<String, LOCState>> {
         val states = services.vaultQueryBy<LOCState>().states
         return states.map {
-            Pair(it.ref.toString(), locStateToLocDataA(it.state.data))
+            Pair(it.ref.toString(), it.state.data)
         }
     }
 
@@ -183,12 +188,10 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("get-loc")
     @Produces(MediaType.APPLICATION_JSON)
     fun getLoc(@QueryParam(value = "ref") ref: String): Response {
-        val locState = services.vaultQueryBy<LOCState>().states.find { it.ref.txhash.toString() == ref }
+        val locStateAndRef = services.vaultQueryBy<LOCState>().states.find { it.ref.txhash.toString() == ref }
                 ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit for ref $ref not found.").build()
 
-        val loc = locStateToLocDataB(locState.state.data)
-        loc.txRef = ref
-        return Response.ok(loc, MediaType.APPLICATION_JSON).build()
+        return Response.ok(Pair(ref, locStateAndRef.state.data), MediaType.APPLICATION_JSON).build()
     }
 
     /**
@@ -223,7 +226,7 @@ class ELOCApi(val services: CordaRPCOps) {
     fun getBol(@QueryParam(value = "ref") ref: String): Response {
         val states = services.vaultQueryBy<BillOfLadingState>().states
         val state = states.find { it.state.data.props.billOfLadingID == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("Bill-of-lading for ref $ref not found.").build()
 
         return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
     }
@@ -237,7 +240,7 @@ class ELOCApi(val services: CordaRPCOps) {
     fun getPackingList(@QueryParam(value = "ref") ref: String): Response {
         val states = services.vaultQueryBy<PackingListState>().states
         val state = states.find { it.state.data.props.orderNumber == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("Packing-list for ref $ref not found.").build()
 
         return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
     }
@@ -255,7 +258,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("loc-stats")
     @Produces(MediaType.APPLICATION_JSON)
-    fun locStats(): LocStats {
+    fun locStats(): Map<String, Int> {
         var awaitingApproval = 0
         var active = 0
         var awaitingPayment = 0
@@ -271,12 +274,15 @@ class ELOCApi(val services: CordaRPCOps) {
             }
         }
 
-        return LocStats(awaitingApproval, active, awaitingPayment)
+        return mapOf(
+                "awaitingApproval" to awaitingApproval,
+                "active" to active,
+                "awaitingPayment" to awaitingPayment)
     }
 
     @POST
     @Path("apply-for-loc")
-    fun applyForLoc(loc: LocAppFormData): Response {
+    fun applyForLoc(loc: LocApplicationData): Response {
         val beneficiary = services.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.beneficiary} not found.").build()
         val issuing = services.partiesFromName(loc.issuer, exactMatch = false).singleOrNull()
@@ -284,13 +290,11 @@ class ELOCApi(val services: CordaRPCOps) {
         val advising = services.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.advisingBank} not found.").build()
 
-        val applicationProps = locApplicationFormDataToLocApplicationProperties(loc, me, beneficiary, issuing, advising)
-
         val application = LOCApplicationState(
                 owner = me,
                 issuer = issuing,
                 status = LOCApplicationStatus.PENDING_ISSUER_REVIEW,
-                props = applicationProps,
+                props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising),
                 purchaseOrder = null)
 
         val result = services.startFlow(::Apply, application).returnValue.getOrThrow()
@@ -313,9 +317,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val issuingBank = services.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.issuingBank} not found.").build()
 
-        val props = billOfLadingDataToBillOfLadingProperties(billOfLading, me)
-
-        val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), props)
+        val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
 
         val result = services.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue.getOrThrow()
 
@@ -338,9 +340,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val issuingBank = services.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.issuingBank} not found.").build()
 
-        val plProperties = packingListDataToPackingListProperties(packingList)
-
-        val state = PackingListState(buyer, me, advisingBank, issuingBank, eloc.contract.PackingList.Status.DRAFT, plProperties)
+        val state = PackingListState(buyer, me, advisingBank, issuingBank, eloc.contract.PackingList.Status.DRAFT, packingList.toPackingListProperties())
 
         val result = services.startFlow(PackingListFlow::UploadAndSend, state)
                 .returnValue
@@ -370,9 +370,7 @@ class ELOCApi(val services: CordaRPCOps) {
         val buyer = services.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${invoice.buyerName} not found.").build()
 
-        val invoiceProperties = invoiceDataToInvoiceProperties(invoice)
-
-        val state = InvoiceState(me, buyer, true, invoiceProperties)
+        val state = InvoiceState(me, buyer, true, invoice.toInvoiceProperties())
 
         val result = services.startFlow(InvoiceFlow::UploadAndSend, buyer, state)
                 .returnValue
@@ -419,11 +417,5 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
-    }
-}
-
-private fun listLOCApplications(states: List<StateAndRef<LOCApplicationState>>): List<Pair<String, LocAppDataSummary>> {
-    return states.map {
-        Pair(it.ref.toString(), locApplicationStateToLocApplicationDataSummary(it.state.data))
     }
 }
