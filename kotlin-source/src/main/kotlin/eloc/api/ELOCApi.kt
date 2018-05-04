@@ -163,10 +163,9 @@ class ELOCApi(val services: CordaRPCOps) {
         val appState = services.vaultQueryBy<LOCApplicationState>().states.find { it.ref.txhash.toString() == ref }
                 ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit application for ref $ref not found.").build()
 
-        val locApplication = locApplicationStateToLocApplicationFormData(appState.state.data)
-        locApplication.txRef = ref
+        val locApplication = appState.state.data
 
-        return Response.ok(locApplication, MediaType.APPLICATION_JSON).build()
+        return Response.ok(Pair(ref, locApplication), MediaType.APPLICATION_JSON).build()
     }
 
     /**
@@ -227,7 +226,7 @@ class ELOCApi(val services: CordaRPCOps) {
     fun getBol(@QueryParam(value = "ref") ref: String): Response {
         val states = services.vaultQueryBy<BillOfLadingState>().states
         val state = states.find { it.state.data.props.billOfLadingID == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("Bill-of-lading for ref $ref not found.").build()
 
         return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
     }
@@ -241,7 +240,7 @@ class ELOCApi(val services: CordaRPCOps) {
     fun getPackingList(@QueryParam(value = "ref") ref: String): Response {
         val states = services.vaultQueryBy<PackingListState>().states
         val state = states.find { it.state.data.props.orderNumber == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("Packing-list for ref $ref not found.").build()
 
         return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
     }
@@ -259,7 +258,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("loc-stats")
     @Produces(MediaType.APPLICATION_JSON)
-    fun locStats(): LocStats {
+    fun locStats(): Map<String, Int> {
         var awaitingApproval = 0
         var active = 0
         var awaitingPayment = 0
@@ -275,7 +274,10 @@ class ELOCApi(val services: CordaRPCOps) {
             }
         }
 
-        return LocStats(awaitingApproval, active, awaitingPayment)
+        return mapOf(
+                "awaitingApproval" to awaitingApproval,
+                "active" to active,
+                "awaitingPayment" to awaitingPayment)
     }
 
     @POST

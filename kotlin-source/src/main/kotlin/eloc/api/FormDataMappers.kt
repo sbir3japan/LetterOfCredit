@@ -34,28 +34,28 @@ fun invoiceDataToInvoiceProperties(invoiceData: InvoiceData) = InvoiceProperties
  */
 fun locApplicationFormDataToLocApplicationProperties(loc: LocAppFormData, applicant: Party, beneficiary: Party, issuing: Party, advising: Party): LOCApplicationProperties {
     return LOCApplicationProperties(
-            loc.applicationId,
-            LocalDate.parse(loc.applicationDate.substringBefore('T')),
-            LocDataStructures.CreditType.valueOf(loc.typeCredit),
-            issuing,
-            beneficiary,
-            applicant,
-            advising,
-            LocalDate.parse(loc.expiryDate.substringBefore('T')),
-            LocDataStructures.Port(loc.portLoadingCountry, loc.portLoadingCity, loc.portLoadingAddress, null, null),
-            LocDataStructures.Port(loc.portDischargeCountry, loc.portDischargeCity, loc.portDischargeAddress, null, null),
-            LocDataStructures.Location(loc.placePresentationCountry, loc.placePresentationState, loc.placePresentationCity),
-            LocalDate.parse(loc.lastShipmentDate.substringBefore('T')), // TODO does it make sense to include shipment date?
-            Period.ofDays(loc.periodPresentation),
-            listOf(LocDataStructures.PricedGood(
+            letterOfCreditApplicationID = loc.applicationId,
+            applicationDate = LocalDate.parse(loc.applicationDate.substringBefore('T')),
+            typeCredit = LocDataStructures.CreditType.valueOf(loc.typeCredit),
+            issuer = issuing,
+            beneficiary = beneficiary,
+            applicant = applicant,
+            advisingBank = advising,
+            expiryDate = LocalDate.parse(loc.expiryDate),
+            portLoading = LocDataStructures.Port(loc.portLoadingCountry, loc.portLoadingCity, loc.portLoadingAddress, null, null),
+            portDischarge = LocDataStructures.Port(loc.portDischargeCountry, loc.portDischargeCity, loc.portDischargeAddress, null, null),
+            placePresentation = LocDataStructures.Location(loc.placePresentationCountry, loc.placePresentationState, loc.placePresentationCity),
+            lastShipmentDate = LocalDate.parse(loc.lastShipmentDate.substringBefore('T')), // TODO does it make sense to include shipment date?
+            periodPresentation = Period.ofDays(loc.periodPresentation),
+            descriptionGoods = listOf(LocDataStructures.PricedGood(
                     loc.goodsDescription,
                     loc.goodsPurchaseOrderRef,
                     loc.goodsQuantity,
-                    Amount(loc.goodsUnitPrice.toLong(), Currency.getInstance(loc.currency)),
+                    Amount(loc.goodsUnitPrice.toLong(), Amount.parseCurrency(loc.amount).token),
                     LocDataStructures.Weight(loc.goodsWeight.toDouble(), LocDataStructures.WeightUnit.valueOf(loc.goodsWeightUnit)))),
-            ArrayList(),
-            StateRef(SecureHash.randomSHA256(), 0),
-            Amount(loc.amount.toLong(), Currency.getInstance(loc.currency)))
+            documentsRequired = ArrayList(),
+            invoiceRef = StateRef(SecureHash.randomSHA256(), 0),
+            amount = Amount.parseCurrency(loc.amount))
 }
 
 /**
