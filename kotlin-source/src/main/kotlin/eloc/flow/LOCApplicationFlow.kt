@@ -3,6 +3,7 @@ package eloc.flow
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.LOCApplication
 import eloc.state.LOCApplicationState
+import eloc.state.LOCApplicationStatus
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
 import net.corda.core.serialization.CordaSerializable
@@ -47,7 +48,7 @@ object LOCApplicationFlow {
             val issueCommand = Command(LOCApplication.Commands.ApplyForLOC(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
             // Step 4. Add the application as an output state, as well as a command to the transaction builder.
-            val state = LOCApplicationState(application.owner, application.issuer, LOCApplication.Status.PENDING_ISSUER_REVIEW, application.props, null)
+            val state = LOCApplicationState(application.owner, application.issuer, LOCApplicationStatus.PENDING_ISSUER_REVIEW, application.props, null)
             builder.addOutputState(state, LOCApplication.LOC_APPLICATION_CONTRACT_ID)
             builder.addCommand(issueCommand)
 

@@ -1,6 +1,5 @@
 package eloc.state
 
-import eloc.contract.LOCApplication
 import eloc.contract.LocDataStructures
 import net.corda.core.contracts.*
 import net.corda.core.identity.Party
@@ -27,16 +26,22 @@ data class LOCApplicationProperties(
         val goods: List<LocDataStructures.PricedGood> = ArrayList(),
         val documentsRequired: List<String> = ArrayList(),
         val invoiceRef: StateRef,
-        val amount: Amount<Currency>
-)
+        val amount: Amount<Currency>)
+
+@CordaSerializable
+enum class LOCApplicationStatus {
+    PENDING_ISSUER_REVIEW,
+    PENDING_ADVISORY_REVIEW,
+    APPROVED,
+    REJECTED,
+}
 
 data class LOCApplicationState(
         val owner: Party,
         val issuer: Party,
-        val status: LOCApplication.Status,
+        val status: LOCApplicationStatus,
         val props: LOCApplicationProperties,
-        val purchaseOrder: Attachment?
-) : LinearState {
+        val purchaseOrder: Attachment?) : LinearState {
 
     override val participants get() = listOf( owner, issuer )
     override val linearId: UniqueIdentifier = UniqueIdentifier(props.letterOfCreditApplicationID)

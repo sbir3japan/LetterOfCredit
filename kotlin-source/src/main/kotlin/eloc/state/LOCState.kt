@@ -18,9 +18,7 @@ data class LOCState(
         val issued: Boolean,
         val shipped: Boolean,
         val terminated: Boolean,
-        val props: LOCProperties
-
-) : LinearState {
+        val props: LOCProperties) : LinearState {
 
     override val linearId = UniqueIdentifier(props.letterOfCreditID)
 
@@ -30,6 +28,17 @@ data class LOCState(
     fun issuerPaid(): LOCState = copy(issuerPaid = true)
     fun advisoryPaid(): LOCState = copy(advisoryPaid = true)
     fun shipped(): LOCState = copy(shipped = true)
+
+    val status: String get() {
+        return when {
+            terminated -> "Terminated"
+            issuerPaid -> "Issuer Paid"
+            advisoryPaid -> "Advisory Paid"
+            beneficiaryPaid -> "Seller Paid"
+            shipped -> "Shipped"
+            else -> "Active"
+        }
+    }
 }
 
 @CordaSerializable
@@ -50,8 +59,8 @@ data class LOCProperties (
         val beneficiary: Party,
         val issuingBank: Party,
         val applicant: Party,
-        val advisingBank: Party
-) {
+        val advisingBank: Party) {
+
     constructor(applicationProps: LOCApplicationProperties, issueDate: LocalDate) : this(
             letterOfCreditID = applicationProps.letterOfCreditApplicationID,
             applicationDate = applicationProps.applicationDate,

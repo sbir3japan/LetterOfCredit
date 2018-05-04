@@ -15,11 +15,10 @@ data class PackingListState(
         val advisory: Party,
         val issuer: Party,
         val status: PackingList.Status,
-        val props: PackingListProperties
-
-) : LinearState {
+        val props: PackingListProperties) : LinearState {
 
     override val linearId = UniqueIdentifier(props.orderNumber)
+
     override val participants get() = listOf( seller, buyer, advisory, issuer )
 }
 
@@ -34,5 +33,4 @@ data class PackingListProperties (
         val seller: LocDataStructures.Company?,
         val buyer: LocDataStructures.Company?,
         val descriptionOfGoods: List<LocDataStructures.PricedGood>,
-        val attachmentHash: SecureHash
-)
+        val attachmentHash: SecureHash)
