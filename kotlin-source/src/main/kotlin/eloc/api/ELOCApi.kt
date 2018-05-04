@@ -183,12 +183,10 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("get-loc")
     @Produces(MediaType.APPLICATION_JSON)
     fun getLoc(@QueryParam(value = "ref") ref: String): Response {
-        val locState = services.vaultQueryBy<LOCState>().states.find { it.ref.txhash.toString() == ref }
+        val locStateAndRef = services.vaultQueryBy<LOCState>().states.find { it.ref.txhash.toString() == ref }
                 ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit for ref $ref not found.").build()
 
-        val loc = locStateToLocDataB(locState.state.data)
-        loc.txRef = ref
-        return Response.ok(loc, MediaType.APPLICATION_JSON).build()
+        return Response.ok(Pair(ref, locStateAndRef.state.data), MediaType.APPLICATION_JSON).build()
     }
 
     /**

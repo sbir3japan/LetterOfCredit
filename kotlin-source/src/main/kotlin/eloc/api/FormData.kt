@@ -79,7 +79,7 @@ data class PackingListData(
         val goodsDescription: String,
         val goodsPurchaseOrderRef: String,
         val goodsQuantity: Int,
-        val goodsUnitPrice: Int,
+        val goodsUnitPrice: String,
         val goodsGrossWeight: Int,
 
         val attachmentHash: String?,

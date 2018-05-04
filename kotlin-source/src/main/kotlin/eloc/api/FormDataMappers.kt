@@ -82,7 +82,7 @@ fun packingListDataToPackingListProperties(packingListData: PackingListData) = P
                         description = packingListData.goodsDescription,
                         purchaseOrderRef = packingListData.goodsPurchaseOrderRef,
                         quantity = packingListData.goodsQuantity,
-                        unitPrice = packingListData.goodsUnitPrice.DOLLARS,
+                        unitPrice = Amount.parseCurrency(packingListData.goodsUnitPrice),
                         grossWeight = LocDataStructures.Weight(packingListData.goodsGrossWeight.toDouble(), LocDataStructures.WeightUnit.KG)
                 )),
         attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() }))
