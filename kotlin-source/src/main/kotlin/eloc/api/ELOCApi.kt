@@ -189,36 +189,27 @@ class ELOCApi(val services: CordaRPCOps) {
             { stateAndRef: StateAndRef<LOCState> -> stateAndRef.ref.txhash.toString() == ref }
     )
 
-    // TODO: Convert to use getStateOfTypeWithHashAndSigs().
     /**
      * Fetches bill of lading state that matches ref from the node's vault.
      */
     @GET
     @Path("get-bol")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getBol(@QueryParam(value = "ref") ref: String): Response {
-        val states = services.vaultQueryBy<BillOfLadingState>().states
-        val state = states.find { it.state.data.props.billOfLadingID == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Bill-of-lading for ref $ref not found. Has it has been added yet?").build()
+    fun getBol(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
+            { stateAndRef: StateAndRef<BillOfLadingState> -> stateAndRef.state.data.props.billOfLadingID == ref }
+    )
 
-        return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
-    }
-
-    // TODO: Convert to use getStateOfTypeWithHashAndSigs().
     /**
      * Fetches packing list state that matches ref from the node's vault.
      */
     @GET
     @Path("get-packing-list")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getPackingList(@QueryParam(value = "ref") ref: String): Response {
-        val states = services.vaultQueryBy<PackingListState>().states
-        val state = states.find { it.state.data.props.orderNumber == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Packing-list for ref $ref not found. Has it has been added yet?").build()
+    fun getPackingList(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
+            { stateAndRef: StateAndRef<PackingListState> -> stateAndRef.state.data.props.orderNumber == ref }
+    )
 
-        return Response.ok(state.state.data, MediaType.APPLICATION_JSON).build()
-    }
-
+    // TODO: This shouldn't require using a flow. Investigate.
     /**
      * Fetches events concerning bill of lading state that matches ref.
      */
