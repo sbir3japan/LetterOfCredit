@@ -3,7 +3,6 @@ package eloc.api
 import eloc.flow.LOCApplicationFlow.Apply
 import eloc.flow.LOCApprovalFlow
 import eloc.flow.documents.BillOfLadingFlow
-import eloc.flow.documents.BillOfLadingTimeline
 import eloc.flow.documents.InvoiceFlow
 import eloc.flow.documents.PackingListFlow
 import eloc.flow.loc.AdvisoryPaymentFlow
@@ -14,7 +13,6 @@ import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
-import net.corda.core.contracts.TransactionState
 import net.corda.core.crypto.toStringShort
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -23,7 +21,6 @@ import net.corda.core.messaging.startFlow
 import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
-import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
@@ -31,7 +28,7 @@ import net.corda.finance.DOLLARS
 import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
 import org.slf4j.Logger
-import java.security.PublicKey
+import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
 import javax.ws.rs.*
@@ -218,7 +215,15 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("get-bol-events")
     @Produces(MediaType.APPLICATION_JSON)
     fun getBolEvents(@QueryParam(value = "ref") ref: String): List<Pair<Party, String>> {
-        return services.startFlow(::BillOfLadingTimeline, ref).returnValue.getOrThrow()
+        val formatter = SimpleDateFormat("dd MM yyyy HH:mm:ss")
+
+        val priorStates = services.vaultQueryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
+            Pair(it.state.data.owner, formatter.format(Date.from(it.state.data.timestamp)))
+        }
+        val currentState = services.vaultQueryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
+            Pair(it.state.data.owner, formatter.format(Date.from(it.state.data.timestamp)))
+        }
+        return priorStates.union(currentState).toList()
     }
 
     @GET

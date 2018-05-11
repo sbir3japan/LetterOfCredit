@@ -2,7 +2,6 @@ package eloc.flow
 
 import eloc.contract.PackingList
 import eloc.flow.documents.BillOfLadingFlow
-import eloc.flow.documents.BillOfLadingTimeline
 import eloc.flow.documents.PackingListFlow
 import eloc.helpers.bolProperties
 import eloc.helpers.plProperties
@@ -81,29 +80,6 @@ class LOCAddDocsFlowTester {
             }
             assert(plStates.count() > 0)
         }
-    }
-
-    @Test
-    fun `timeline`() {
-
-        val initialState = BillOfLadingState(beneficiaryNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), advisingBankNode.info.legalIdentities.first(), issuerNode.info.legalIdentities.first(), Instant.now(), bolProperties)
-
-        // kick off flow
-        val sellerFlow = BillOfLadingFlow.UploadAndSend(initialState)
-        val future = beneficiaryNode.startFlow(sellerFlow).toCompletableFuture()
-        net.runNetwork()
-        future.getOrThrow()
-
-        val ref = beneficiaryNode.transaction {
-            beneficiaryNode.services.vaultService.queryBy<BillOfLadingState>().states.first().state.data.props.billOfLadingID
-        }
-
-        val timelineFlow = BillOfLadingTimeline(ref)
-        val timelineFuture = beneficiaryNode.startFlow(timelineFlow).toCompletableFuture()
-        net.runNetwork()
-        val result = timelineFuture.getOrThrow()
-
-        assert(result.count() > 0)
     }
 
     @After
