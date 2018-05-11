@@ -15,6 +15,7 @@ import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.TransactionState
+import net.corda.core.crypto.toStringShort
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
@@ -412,7 +413,7 @@ class ELOCApi(val services: CordaRPCOps) {
             val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
                     ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
 
-            Triple(tx.id.toString(), tx.sigs.map { it.by }, stateAndRef.state.data)
+            Triple(tx.id.toString(), tx.sigs.map { it.by.toStringShort() }, stateAndRef.state.data)
         }
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
@@ -430,7 +431,7 @@ class ELOCApi(val services: CordaRPCOps) {
                 ?: return Response.status(BAD_REQUEST).entity("State for ref $ref not found.").build()
         val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
                 ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
-        val response = Triple(tx.id.toString(), tx.sigs.map { it.by }, stateAndRef.state.data)
+        val response = Triple(tx.id.toString(), tx.sigs.map { it.by.toStringShort() }, stateAndRef.state.data)
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
     }
