@@ -14,6 +14,7 @@ import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
+import net.corda.core.contracts.TransactionState
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
@@ -113,6 +114,14 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 
     /**
+     * Displays all invoice states that exist in the node's vault.
+     */
+    @GET
+    @Path("invoices")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getInvoices() = getAllStatesOfTypeWithHashesAndSigs<InvoiceState>()
+
+    /**
      * Displays all LoC application states that exist in the node's vault.
      */
     @GET
@@ -120,6 +129,19 @@ class ELOCApi(val services: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getAllLocApplications(): List<Pair<String, LOCApplicationState>> {
         val states = services.vaultQueryBy<LOCApplicationState>().states
+        return states.map {
+            Pair(it.ref.toString(), it.state.data)
+        }
+    }
+
+    /**
+     * Displays all LoC states that exist in the node's vault.
+     */
+    @GET
+    @Path("all")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getAllLocs(): List<Pair<String, LOCState>> {
+        val states = services.vaultQueryBy<LOCState>().states
         return states.map {
             Pair(it.ref.toString(), it.state.data)
         }
@@ -154,6 +176,16 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 
     /**
+     * Fetches invoice state that matches ref from the node's vault.
+     */
+    @GET
+    @Path("get-invoice")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getInvoice(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
+            { stateAndRef: StateAndRef<InvoiceState> -> stateAndRef.state.data.props.invoiceID == ref }
+    )
+
+    /**
      * Fetches LoC application state that matches ref from the node's vault.
      */
     @GET
@@ -169,19 +201,6 @@ class ELOCApi(val services: CordaRPCOps) {
     }
 
     /**
-     * Displays all LoC states that exist in the node's vault.
-     */
-    @GET
-    @Path("all")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocs(): List<Pair<String, LOCState>> {
-        val states = services.vaultQueryBy<LOCState>().states
-        return states.map {
-            Pair(it.ref.toString(), it.state.data)
-        }
-    }
-
-    /**
      * Fetches LoC state that matches ref from the node's vault.
      */
     @GET
@@ -192,29 +211,6 @@ class ELOCApi(val services: CordaRPCOps) {
                 ?: return Response.status(BAD_REQUEST).entity("Letter-of-credit for ref $ref not found.").build()
 
         return Response.ok(Pair(ref, locStateAndRef.state.data), MediaType.APPLICATION_JSON).build()
-    }
-
-    /**
-     * Displays all invoice states that exist in the node's vault.
-     */
-    @GET
-    @Path("invoices")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getInvoices(): List<InvoiceState> {
-        return services.vaultQueryBy<InvoiceState>().states.map { it.state.data }
-    }
-
-    /**
-     * Fetches invoice state that matches ref from the node's vault.
-     */
-    @GET
-    @Path("get-invoice")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getInvoice(@QueryParam(value = "ref") ref: String): Response {
-        val states = services.vaultQueryBy<InvoiceState>().states
-        val stateAndRef = states.find { it.state.data.props.invoiceID == ref }
-                ?: return Response.status(BAD_REQUEST).entity("Invoice for ref $ref not found.").build()
-        return Response.ok(stateAndRef.state.data, MediaType.APPLICATION_JSON).build()
     }
 
     /**
@@ -417,5 +413,34 @@ class ELOCApi(val services: CordaRPCOps) {
                 .getOrThrow()
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
+    }
+
+    // TODO: Use in all endpoints that return all states of given type.
+    private inline fun <reified T : ContractState> getAllStatesOfTypeWithHashesAndSigs(): Response {
+        val states = services.vaultQueryBy<T>().states
+        val transactions = services.internalVerifiedTransactionsSnapshot()
+
+        val response = states.map { stateAndRef ->
+            val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
+                    ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
+
+            Triple(tx.id, tx.sigs.map { it.by }, stateAndRef.state.data)
+        }
+
+        return Response.ok(response, MediaType.APPLICATION_JSON).build()
+    }
+
+    // TODO: Use in all endpoints that return a single state of a given type.
+    private inline fun <reified T : ContractState> getStateOfTypeWithHashAndSigs(ref: String, filter: (StateAndRef<T>) -> Boolean): Response {
+        val states = services.vaultQueryBy<T>().states
+        val transactions = services.internalVerifiedTransactionsSnapshot()
+
+        val stateAndRef = states.find(filter)
+                ?: return Response.status(BAD_REQUEST).entity("State for ref $ref not found.").build()
+        val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
+                ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
+        val response = Triple(tx.id, tx.sigs.map { it.by }, stateAndRef.state.data)
+
+        return Response.ok(response, MediaType.APPLICATION_JSON).build()
     }
 }
