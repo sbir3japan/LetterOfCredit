@@ -2,9 +2,11 @@ package eloc
 
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
+import net.corda.testing.core.DUMMY_NOTARY_NAME
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.PortAllocation
 import net.corda.testing.driver.driver
+import net.corda.testing.node.NotarySpec
 import net.corda.testing.node.User
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -29,7 +31,8 @@ fun main(args: Array<String>) {
             portAllocation = CustomPortAllocation,
             startNodesInProcess = true,
             waitForAllNodesToFinish = true,
-            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas")),
+            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas"),
+            notarySpecs = listOf(NotarySpec(DUMMY_NOTARY_NAME, validating = false))),
             dsl = {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
