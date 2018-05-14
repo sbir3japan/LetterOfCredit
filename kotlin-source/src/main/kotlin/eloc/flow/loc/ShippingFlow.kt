@@ -5,6 +5,7 @@ import eloc.contract.BillOfLadingAgreement
 import eloc.contract.LOC
 import eloc.state.BillOfLadingState
 import eloc.state.LOCState
+import eloc.state.PackingListState
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
@@ -45,29 +46,33 @@ object ShippingFlow {
             // #1 Pull state from vault and reference to payee
             val locState = serviceHub.vaultService.queryBy<LOCState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
 
-            // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
+            // #2 Check that bill of lading and packing list have been created, this will throw an error if exactly one of each doesn't exist.
+            serviceHub.vaultService.queryBy<BillOfLadingState>().states.single { it.state.data.props.billOfLadingID == locId }
+            serviceHub.vaultService.queryBy<PackingListState>().states.single { it.state.data.props.billOfLadingNumber == locId }
+
+            // #3 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
-            // #3 Create output state where the status is marked as shipped
+            // #4 Create output state where the status is marked as shipped
             val outputState = locState.state.data.shipped()
 
-            // #4 Create builder and command
+            // #5 Create builder and command
             val builder = TransactionBuilder(notary = notary)
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
-            // #5 Add other states
+            // #6 Add other states
             builder.addInputState(locState)
             builder.addOutputState(outputState, LOC.LOC_CONTRACT_ID)
             builder.addCommand(LOC.Commands.ConfirmShipment(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
-            // #6 Let's formalise the transaction by verifying and signing
+            // #7 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)
 
             progressTracker.currentStep = SIGNING_TRANSACTION
             val stx = serviceHub.signInitialTransaction(builder)
 
-            // #7 Send to other participants
+            // #8 Send to other participants
             return subFlow(FinalityFlow(stx))
         }
     }
