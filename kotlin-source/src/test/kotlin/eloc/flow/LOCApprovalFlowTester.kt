@@ -1,11 +1,13 @@
 package eloc.flow
 
-import eloc.contract.LOCApplication
-import eloc.contract.LocDataStructures
-import eloc.state.LOCApplicationProperties
-import eloc.state.LOCApplicationState
-import eloc.state.LOCApplicationStatus
-import eloc.state.LOCState
+import eloc.LetterOfCreditDataStructures.CreditType
+import eloc.LetterOfCreditDataStructures.Location
+import eloc.LetterOfCreditDataStructures.Port
+import eloc.LetterOfCreditDataStructures.PricedGood
+import eloc.state.LetterOfCreditApplicationProperties
+import eloc.state.LetterOfCreditApplicationState
+import eloc.state.LetterOfCreditApplicationStatus
+import eloc.state.LetterOfCreditState
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
@@ -50,7 +52,7 @@ class LOCApprovalFlowTester {
         appFuture.getOrThrow()
 
         val locApp = issuerNode.transaction {
-            issuerNode.services.vaultService.queryBy<LOCApplicationState>().states
+            issuerNode.services.vaultService.queryBy<LetterOfCreditApplicationState>().states
         }
 
         assert(locApp.count() > 0)
@@ -60,41 +62,41 @@ class LOCApprovalFlowTester {
         approvalFuture.getOrThrow()
 
         val locState = issuerNode.transaction {
-            issuerNode.services.vaultService.queryBy<LOCState>().states
+            issuerNode.services.vaultService.queryBy<LetterOfCreditState>().states
         }
 
         assert(locState.count() > 0)
     }
 
-    private fun makeApplication(issuer: Party): LOCApplicationState {
-        val applicationProps = LOCApplicationProperties(
+    private fun makeApplication(issuer: Party): LetterOfCreditApplicationState {
+        val applicationProps = LetterOfCreditApplicationProperties(
                 letterOfCreditApplicationID = "LOC01",
                 applicationDate = LocalDate.of(2016, 5, 15),
-                typeCredit = LocDataStructures.CreditType.SIGHT,
+                typeCredit = CreditType.SIGHT,
                 amount = 100000.DOLLARS,
                 expiryDate = LocalDate.of(2017, 12, 14),
-                portLoading = LocDataStructures.Port("SG", "Singapore", null, null, null),
-                portDischarge = LocDataStructures.Port("US", "Oakland", null, null, null),
-                descriptionGoods = listOf(LocDataStructures.PricedGood(description = "Tiger balm",
+                portLoading = Port("SG", "Singapore", null, null, null),
+                portDischarge = Port("US", "Oakland", null, null, null),
+                descriptionGoods = listOf(PricedGood(description = "Tiger balm",
                         quantity = 10000,
                         grossWeight = null,
                         unitPrice = Amount(1, Currency.getInstance("USD")),
                         purchaseOrderRef = null
                 )),
-                placePresentation = LocDataStructures.Location("US", "California", "Oakland"),
+                placePresentation = Location("US", "California", "Oakland"),
                 lastShipmentDate = LocalDate.of(2016, 6, 12), // TODO does it make sense to include shipment date?
                 periodPresentation = Period.ofDays(31),
                 beneficiary = buyerNode.info.legalIdentities.first(),
                 issuer = issuer,
                 applicant = buyerNode.info.legalIdentities.first(),
                 advisingBank = advisingBankNode.info.legalIdentities.first(),
-                invoiceRef = StateRef(SecureHash.Companion.randomSHA256(), 0)
+                invoiceRef = StateRef(SecureHash.randomSHA256(), 0)
         )
 
-        val application = LOCApplicationState(
+        val application = LetterOfCreditApplicationState(
                 owner = buyerNode.info.legalIdentities.first(),
                 issuer = issuer,
-                status = LOCApplicationStatus.PENDING_ISSUER_REVIEW,
+                status = LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW,
                 props = applicationProps,
                 purchaseOrder = null
         )

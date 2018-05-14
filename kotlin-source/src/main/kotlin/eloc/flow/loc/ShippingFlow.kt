@@ -1,16 +1,13 @@
 package eloc.flow.loc
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.BillOfLadingAgreement
-import eloc.contract.LOC
-import eloc.state.BillOfLadingState
-import eloc.state.LOCState
+import eloc.contract.LetterOfCreditContract
+import eloc.state.LetterOfCreditState
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import net.corda.finance.contracts.asset.Cash
 import java.time.Duration
 import java.time.Instant
 
@@ -43,7 +40,7 @@ object ShippingFlow {
         override fun call() : SignedTransaction {
 
             // #1 Pull state from vault and reference to payee
-            val locState = serviceHub.vaultService.queryBy<LOCState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
+            val locState = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
 
             // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION
@@ -58,8 +55,8 @@ object ShippingFlow {
 
             // #5 Add other states
             builder.addInputState(locState)
-            builder.addOutputState(outputState, LOC.LOC_CONTRACT_ID)
-            builder.addCommand(LOC.Commands.ConfirmShipment(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            builder.addOutputState(outputState, LetterOfCreditContract.CONTRACT_ID)
+            builder.addCommand(LetterOfCreditContract.Commands.ConfirmShipment(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
             // #6 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)

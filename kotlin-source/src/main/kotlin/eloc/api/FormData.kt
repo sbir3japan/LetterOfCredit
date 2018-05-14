@@ -1,6 +1,14 @@
 package eloc.api
 
-import eloc.contract.LocDataStructures
+import eloc.LetterOfCreditDataStructures.Company
+import eloc.LetterOfCreditDataStructures.CreditType
+import eloc.LetterOfCreditDataStructures.Good
+import eloc.LetterOfCreditDataStructures.Location
+import eloc.LetterOfCreditDataStructures.Person
+import eloc.LetterOfCreditDataStructures.Port
+import eloc.LetterOfCreditDataStructures.PricedGood
+import eloc.LetterOfCreditDataStructures.Weight
+import eloc.LetterOfCreditDataStructures.WeightUnit
 import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.StateRef
@@ -10,7 +18,7 @@ import net.corda.finance.DOLLARS
 import java.io.InputStream
 import java.time.LocalDate
 import java.time.Period
-import java.util.ArrayList
+import java.util.*
 
 /** These classes capture the JSON form data passed from the front-end. */
 
@@ -38,14 +46,14 @@ data class InvoiceData(
      */
     fun toInvoiceProperties() = InvoiceProperties(
             invoiceID = invoiceId,
-            seller = LocDataStructures.Company(sellerName, sellerAddress, ""),
-            buyer = LocDataStructures.Company(buyerName, buyerAddress, ""),
+            seller =Company(sellerName, sellerAddress, ""),
+            buyer = Company(buyerName, buyerAddress, ""),
             invoiceDate = LocalDate.parse(invoiceDate.substringBefore('T')),
             term = term.toLong(),
             attachmentHash = SecureHash.randomSHA256(),
-            goods = listOf(LocDataStructures.PricedGood(goodsDescription, goodsPurchaseOrderRef, goodsQuantity,
-                    goodsUnitPrice.DOLLARS, LocDataStructures.Weight(goodsGrossWeight.toDouble(),
-                    LocDataStructures.WeightUnit.KG))))
+            goods = listOf(PricedGood(goodsDescription, goodsPurchaseOrderRef, goodsQuantity,
+                    goodsUnitPrice.DOLLARS, Weight(goodsGrossWeight.toDouble(),
+                    WeightUnit.KG))))
 }
 
 /**
@@ -82,29 +90,29 @@ data class LocApplicationData(
 
     /**
      * Converts the [LocApplicationData] submitted from the front-end into the
-     * properties for a [LOCApplicationState].
+     * properties for a [LetterOfCreditApplicationState].
      */
-    fun toLocApplicationProperties(applicant: Party, beneficiary: Party, issuing: Party, advising: Party): LOCApplicationProperties {
-        return LOCApplicationProperties(
+    fun toLocApplicationProperties(applicant: Party, beneficiary: Party, issuing: Party, advising: Party): LetterOfCreditApplicationProperties {
+        return LetterOfCreditApplicationProperties(
                 letterOfCreditApplicationID = applicationId,
                 applicationDate = LocalDate.parse(applicationDate.substringBefore('T')),
-                typeCredit = LocDataStructures.CreditType.valueOf(typeCredit),
+                typeCredit = CreditType.valueOf(typeCredit),
                 issuer = issuing,
                 beneficiary = beneficiary,
                 applicant = applicant,
                 advisingBank = advising,
                 expiryDate = LocalDate.parse(expiryDate),
-                portLoading = LocDataStructures.Port(portLoadingCountry, portLoadingCity, portLoadingAddress, null, null),
-                portDischarge = LocDataStructures.Port(portDischargeCountry, portDischargeCity, portDischargeAddress, null, null),
-                placePresentation = LocDataStructures.Location(placePresentationCountry, placePresentationState, placePresentationCity),
+                portLoading = Port(portLoadingCountry, portLoadingCity, portLoadingAddress, null, null),
+                portDischarge = Port(portDischargeCountry, portDischargeCity, portDischargeAddress, null, null),
+                placePresentation = Location(placePresentationCountry, placePresentationState, placePresentationCity),
                 lastShipmentDate = LocalDate.parse(lastShipmentDate.substringBefore('T')), // TODO does it make sense to include shipment date?
                 periodPresentation = Period.ofDays(periodPresentation),
-                descriptionGoods = listOf(LocDataStructures.PricedGood(
+                descriptionGoods = listOf(PricedGood(
                         goodsDescription,
                         goodsPurchaseOrderRef,
                         goodsQuantity,
                         Amount(goodsUnitPrice.toLong(), Amount.parseCurrency(amount).token),
-                        LocDataStructures.Weight(goodsWeight.toDouble(), LocDataStructures.WeightUnit.valueOf(goodsWeightUnit)))),
+                        Weight(goodsWeight.toDouble(), WeightUnit.valueOf(goodsWeightUnit)))),
                 documentsRequired = ArrayList(),
                 invoiceRef = StateRef(SecureHash.randomSHA256(), 0),
                 amount = Amount.parseCurrency(amount))
@@ -151,21 +159,21 @@ data class PackingListData(
             transportMethod = transportMethod,
             nameOfVessel = nameOfVessel,
             billOfLadingNumber = billOfLadingNumber,
-            seller = LocDataStructures.Company(
+            seller = Company(
                     name = sellerName,
                     address = sellerAddress,
                     phone = ""),
-            buyer = LocDataStructures.Company(
+            buyer = Company(
                     name = buyerName,
                     address = buyerAddress,
                     phone = ""),
             descriptionOfGoods = arrayListOf(
-                    LocDataStructures.PricedGood(
+                    PricedGood(
                             description = goodsDescription,
                             purchaseOrderRef = goodsPurchaseOrderRef,
                             quantity = goodsQuantity,
                             unitPrice = Amount.parseCurrency(goodsUnitPrice),
-                            grossWeight = LocDataStructures.Weight(goodsGrossWeight.toDouble(), LocDataStructures.WeightUnit.KG)
+                            grossWeight = Weight(goodsGrossWeight.toDouble(), WeightUnit.KG)
                     )),
             attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() }))
     )
@@ -224,23 +232,23 @@ data class BillOfLadingData(
                 // For now we'll just set the carrier owner as the seller, in future we should have a node representing the carrier
                 seller,
                 nameOfVessel,
-                listOf(LocDataStructures.Good(description = goodsDescription, quantity = goodsQuantity, grossWeight = null)),
-                LocDataStructures.Port(country = portOfLoadingCountry, city = portOfLoadingCity, address = portOfLoadingAddress, state = null, name = null),
-                LocDataStructures.Port(country = portOfDischargeCountry, city = portOfDischargeCity, address = portOfDischargeAddress, state = null, name = null),
-                LocDataStructures.Weight(
+                listOf(Good(description = goodsDescription, quantity = goodsQuantity, grossWeight = null)),
+                Port(country = portOfLoadingCountry, city = portOfLoadingCity, address = portOfLoadingAddress, state = null, name = null),
+                Port(country = portOfDischargeCountry, city = portOfDischargeCity, address = portOfDischargeAddress, state = null, name = null),
+                Weight(
                         grossWeight.toDouble(),
-                        LocDataStructures.WeightUnit.valueOf(grossWeightUnit)),
+                        WeightUnit.valueOf(grossWeightUnit)),
                 LocalDate.parse(dateOfShipment.substringBefore('T')),
                 null,
-                LocDataStructures.Person(
+                Person(
                         notifyName,
                         notifyAddress,
                         notifyPhone),
-                LocDataStructures.Company(
+                Company(
                         consigneeName,
                         consigneeAddress,
                         consigneePhone),
-                LocDataStructures.Location(
+                Location(
                         placeOfReceiptCountry,
                         null,
                         placeOfReceiptCity),

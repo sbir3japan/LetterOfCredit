@@ -1,7 +1,7 @@
 package eloc.state
 
-import eloc.contract.LocDataStructures
-import eloc.contract.PackingList
+import eloc.LetterOfCreditDataStructures.Company
+import eloc.LetterOfCreditDataStructures.PricedGood
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.crypto.SecureHash
@@ -14,7 +14,7 @@ data class PackingListState(
         val buyer: Party,
         val advisory: Party,
         val issuer: Party,
-        val status: PackingList.Status,
+        val status: PackingListStatus,
         val props: PackingListProperties) : LinearState {
 
     override val linearId = UniqueIdentifier(props.orderNumber)
@@ -30,7 +30,13 @@ data class PackingListProperties (
         val transportMethod : String,
         val nameOfVessel: String,
         val billOfLadingNumber: String,
-        val seller: LocDataStructures.Company?,
-        val buyer: LocDataStructures.Company?,
-        val descriptionOfGoods: List<LocDataStructures.PricedGood>,
+        val seller: Company?,
+        val buyer: Company?,
+        val descriptionOfGoods: List<PricedGood>,
         val attachmentHash: SecureHash)
+
+@CordaSerializable
+enum class PackingListStatus {
+    DRAFT,
+    SIGNED
+}

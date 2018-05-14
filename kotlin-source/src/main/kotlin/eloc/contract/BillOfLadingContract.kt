@@ -6,7 +6,7 @@ import net.corda.core.transactions.LedgerTransaction
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Bill of Lading Agreement
+// Bill of Lading Contract
 //
 
 /**
@@ -19,11 +19,10 @@ import net.corda.core.transactions.LedgerTransaction
  * Endorsed order bills of lading can be traded as a security or serve as collateral against debt obligations.
  */
 
-class BillOfLadingAgreement : Contract {
-
+class BillOfLadingContract : Contract {
     companion object {
         @JvmStatic
-        val BOL_CONTRACT_ID = "eloc.contract.BillOfLadingAgreement"
+        val CONTRACT_ID = "eloc.contract.BillOfLadingContract"
     }
 
     interface Commands : CommandData {
@@ -31,13 +30,13 @@ class BillOfLadingAgreement : Contract {
         class TransferPossession : TypeOnlyCommandData(), Commands
     }
 
-    /** The Invoice contract needs to handle three commands
+    /** The Invoice contract needs to handle two commands
      * 1: IssueBL --
      * 2: TransferPossession --
      */
     override fun verify(tx: LedgerTransaction) {
         // We should only ever receive one command at a time, else throw an exception
-        val command = tx.commands.requireSingleCommand<BillOfLadingAgreement.Commands>()
+        val command = tx.commands.requireSingleCommand<Commands>()
 
         val txOutputStates: List<BillOfLadingState> = tx.outputsOfType()
         val txInputStates: List<BillOfLadingState> = tx.inputsOfType()

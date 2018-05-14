@@ -38,14 +38,14 @@ import javax.ws.rs.core.Response.Status.BAD_REQUEST
 import javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 
 @Path("loc")
-class ELOCApi(val services: CordaRPCOps) {
-    private val me = services.nodeInfo().legalIdentities.first()
+class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
+    private val me = rpcOps.nodeInfo().legalIdentities.first()
     private val myLegalName = me.name
     private val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary", "London", "GB"),
             CordaX500Name("NetworkMapService", "London", "GB"))
 
     companion object {
-        val logger: Logger = loggerFor<ELOCApi>()
+        val logger: Logger = loggerFor<LetterOfCreditApi>()
     }
 
     /**
@@ -63,7 +63,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("peers")
     @Produces(MediaType.APPLICATION_JSON)
     fun getPeers(): Map<String, List<CordaX500Name>> {
-        val nodeInfo = services.networkMapSnapshot()
+        val nodeInfo = rpcOps.networkMapSnapshot()
         return mapOf("peers" to nodeInfo
                 .map { it.legalIdentities.first().name }
                 .filter { it != myLegalName && it !in SERVICE_NODE_NAMES })
@@ -76,12 +76,12 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("issue-cash")
     @Produces(MediaType.APPLICATION_JSON)
     fun issueCash(): Response {
-        val notary = services.notaryIdentities().firstOrNull()
+        val notary = rpcOps.notaryIdentities().firstOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("Could not find a notary.").type(MediaType.APPLICATION_JSON).build()
         val issueRef = OpaqueBytes.of(0)
         val issueRequest = CashIssueFlow.IssueRequest(10000000.DOLLARS, issueRef, notary)
 
-        val flowHandle = services.startFlowDynamic(CashIssueFlow::class.java, issueRequest)
+        val flowHandle = rpcOps.startFlowDynamic(CashIssueFlow::class.java, issueRequest)
         val result = flowHandle.use { it.returnValue.getOrThrow() }
         return Response.ok(result.stx.tx.outputs.single().data).build()
     }
@@ -93,7 +93,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("cash-balances")
     @Produces(MediaType.APPLICATION_JSON)
     fun getCashBalances(): Map<Currency, Amount<Currency>> {
-        val balance = services.getCashBalances()
+        val balance = rpcOps.getCashBalances()
         return if (balance.isEmpty()) {
             mapOf(Pair(Currency.getInstance("USD"), 0.DOLLARS))
         } else {
@@ -108,8 +108,8 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("vault")
     @Produces(MediaType.APPLICATION_JSON)
     fun getVault(): Pair<List<StateAndRef<ContractState>>, List<StateAndRef<ContractState>>> {
-        val unconsumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria()).states
-        val consumedStates = services.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states
+        val unconsumedStates = rpcOps.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria()).states
+        val consumedStates = rpcOps.vaultQueryBy<ContractState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states
         return Pair(unconsumedStates, consumedStates)
     }
 
@@ -122,29 +122,29 @@ class ELOCApi(val services: CordaRPCOps) {
     fun getInvoices() = getAllStatesOfTypeWithHashesAndSigs<InvoiceState>()
 
     /**
-     * Displays all LoC application states that exist in the node's vault.
+     * Displays all Letter-of-credit application states that exist in the node's vault.
      */
     @GET
     @Path("all-app")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocApplications() = getAllStatesOfTypeWithHashesAndSigs<LOCApplicationState>()
+    fun getAllLocApplications() = getAllStatesOfTypeWithHashesAndSigs<LetterOfCreditApplicationState>()
 
     /**
-     * Displays all LoC states that exist in the node's vault.
+     * Displays all letter-of-credit states that exist in the node's vault.
      */
     @GET
     @Path("all")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAllLocs() = getAllStatesOfTypeWithHashesAndSigs<LOCState>()
+    fun getAllLettersOfCredit() = getAllStatesOfTypeWithHashesAndSigs<LetterOfCreditState>()
 
     /**
-     * Displays all LoC application states awaiting confirmation that exist in the node's vault.
+     * Displays all letter-of-credit application states awaiting confirmation that exist in the node's vault.
      */
     @GET
     @Path("awaiting-approval")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAwaitingApprovalLocs() = getFilteredStatesOfTypeWithHashesAndSigs(
-            { stateAndRef: StateAndRef<LOCApplicationState> -> stateAndRef.state.data.status == LOCApplicationStatus.PENDING_ISSUER_REVIEW }
+    fun getAwaitingApprovalLettersOfCredit() = getFilteredStatesOfTypeWithHashesAndSigs(
+            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW }
     )
 
     /**
@@ -153,8 +153,8 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("active")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getActiveLocs() = getFilteredStatesOfTypeWithHashesAndSigs(
-            { stateAndRef: StateAndRef<LOCApplicationState> -> stateAndRef.state.data.status == LOCApplicationStatus.APPROVED }
+    fun getActiveLettersOfCredit() = getFilteredStatesOfTypeWithHashesAndSigs(
+            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.APPROVED }
     )
 
     /**
@@ -174,17 +174,17 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("get-loc-app")
     @Produces(MediaType.APPLICATION_JSON)
     fun getLocApp(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<LOCApplicationState> -> stateAndRef.ref.txhash.toString() == ref }
+            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.ref.txhash.toString() == ref }
     )
 
     /**
-     * Fetches LoC state that matches ref from the node's vault.
+     * Fetches letter-of-credit state that matches ref from the node's vault.
      */
     @GET
     @Path("get-loc")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getLoc(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<LOCState> -> stateAndRef.ref.txhash.toString() == ref }
+    fun getLetterOfCredit(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
+            { stateAndRef: StateAndRef<LetterOfCreditState> -> stateAndRef.ref.txhash.toString() == ref }
     )
 
     /**
@@ -193,7 +193,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("get-bol")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getBol(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
+    fun getBillOfLading(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
             { stateAndRef: StateAndRef<BillOfLadingState> -> stateAndRef.state.data.props.billOfLadingID == ref }
     )
 
@@ -217,10 +217,10 @@ class ELOCApi(val services: CordaRPCOps) {
     fun getBolEvents(@QueryParam(value = "ref") ref: String): List<Pair<Party, String>> {
         val formatter = SimpleDateFormat("dd MM yyyy HH:mm:ss")
 
-        val priorStates = services.vaultQueryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
+        val priorStates = rpcOps.vaultQueryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.CONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
             Pair(it.state.data.owner, formatter.format(Date.from(it.state.data.timestamp)))
         }
-        val currentState = services.vaultQueryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
+        val currentState = rpcOps.vaultQueryBy<BillOfLadingState>(QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).states.filter { it.state.data.props.billOfLadingID == ref }.map {
             Pair(it.state.data.owner, formatter.format(Date.from(it.state.data.timestamp)))
         }
         return priorStates.union(currentState).toList()
@@ -229,19 +229,19 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("loc-stats")
     @Produces(MediaType.APPLICATION_JSON)
-    fun locStats(): Map<String, Int> {
+    fun letterOfCreditStats(): Map<String, Int> {
         var awaitingApproval = 0
         var active = 0
         var awaitingPayment = 0
         var rejected = 0
 
-        val states = services.vaultQueryBy<LOCApplicationState>().states.map { it.state }
+        val states = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.map { it.state }
         states.forEach {
             when (it.data.status) {
-                LOCApplicationStatus.PENDING_ISSUER_REVIEW -> awaitingApproval++
-                LOCApplicationStatus.PENDING_ADVISORY_REVIEW -> awaitingApproval++
-                LOCApplicationStatus.APPROVED -> active++
-                LOCApplicationStatus.REJECTED -> rejected++
+                LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW -> awaitingApproval++
+                LetterOfCreditApplicationStatus.PENDING_ADVISORY_REVIEW -> awaitingApproval++
+                LetterOfCreditApplicationStatus.APPROVED -> active++
+                LetterOfCreditApplicationStatus.REJECTED -> rejected++
             }
         }
 
@@ -254,21 +254,21 @@ class ELOCApi(val services: CordaRPCOps) {
     @POST
     @Path("apply-for-loc")
     fun applyForLoc(loc: LocApplicationData): Response {
-        val beneficiary = services.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull()
+        val beneficiary = rpcOps.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.beneficiary} not found.").build()
-        val issuing = services.partiesFromName(loc.issuer, exactMatch = false).singleOrNull()
+        val issuing = rpcOps.partiesFromName(loc.issuer, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.issuer} not found.").build()
-        val advising = services.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
+        val advising = rpcOps.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.advisingBank} not found.").build()
 
-        val application = LOCApplicationState(
+        val application = LetterOfCreditApplicationState(
                 owner = me,
                 issuer = issuing,
-                status = LOCApplicationStatus.PENDING_ISSUER_REVIEW,
+                status = LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW,
                 props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising),
                 purchaseOrder = null)
 
-        val result = services.startFlow(::Apply, application).returnValue.getOrThrow()
+        val result = rpcOps.startFlow(::Apply, application).returnValue.getOrThrow()
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
@@ -277,20 +277,20 @@ class ELOCApi(val services: CordaRPCOps) {
     @Path("submit-bol")
     fun submitBol(billOfLading: BillOfLadingData): Response {
         // Check bill of lading hasn't already been added.
-        if (services.vaultQueryBy<BillOfLadingState>().states.filter { it.state.data.props.billOfLadingID == billOfLading.billOfLadingId }.count() > 0) {
+        if (rpcOps.vaultQueryBy<BillOfLadingState>().states.filter { it.state.data.props.billOfLadingID == billOfLading.billOfLadingId }.count() > 0) {
             return Response.accepted().entity("Bill of Lading already added").build()
         }
 
-        val buyer = services.partiesFromName(billOfLading.buyer, exactMatch = false).singleOrNull()
+        val buyer = rpcOps.partiesFromName(billOfLading.buyer, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.buyer} not found.").build()
-        val advisingBank = services.partiesFromName(billOfLading.advisingBank, exactMatch = false).singleOrNull()
+        val advisingBank = rpcOps.partiesFromName(billOfLading.advisingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.advisingBank} not found.").build()
-        val issuingBank = services.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
+        val issuingBank = rpcOps.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.issuingBank} not found.").build()
 
         val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
 
-        val result = services.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue.getOrThrow()
+        val result = rpcOps.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue.getOrThrow()
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
@@ -300,20 +300,20 @@ class ELOCApi(val services: CordaRPCOps) {
     fun submitPackingList(packingList: PackingListData): Response {
 
         // Check bill of lading hasn't already been added.
-        if (services.vaultQueryBy<PackingListState>().states.filter { it.state.data.props.billOfLadingNumber == packingList.billOfLadingNumber }.count() > 0) {
+        if (rpcOps.vaultQueryBy<PackingListState>().states.filter { it.state.data.props.billOfLadingNumber == packingList.billOfLadingNumber }.count() > 0) {
             return Response.accepted().entity("Packing List already added").build()
         }
 
-        val buyer = services.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull()
+        val buyer = rpcOps.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.buyerName} not found.").build()
-        val advisingBank = services.partiesFromName(packingList.advisingBank, exactMatch = false).singleOrNull()
+        val advisingBank = rpcOps.partiesFromName(packingList.advisingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.advisingBank} not found.").build()
-        val issuingBank = services.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
+        val issuingBank = rpcOps.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.issuingBank} not found.").build()
 
-        val state = PackingListState(buyer, me, advisingBank, issuingBank, eloc.contract.PackingList.Status.DRAFT, packingList.toPackingListProperties())
+        val state = PackingListState(buyer, me, advisingBank, issuingBank, PackingListStatus.DRAFT, packingList.toPackingListProperties())
 
-        val result = services.startFlow(PackingListFlow::UploadAndSend, state)
+        val result = rpcOps.startFlow(PackingListFlow::UploadAndSend, state)
                 .returnValue
                 .getOrThrow()
 
@@ -322,13 +322,13 @@ class ELOCApi(val services: CordaRPCOps) {
 
     @GET
     @Path("approve-loc")
-    fun approveLOCApplication(@QueryParam(value = "ref") ref: String): Response {
+    fun approveLetterOfCreditApplication(@QueryParam(value = "ref") ref: String): Response {
 
-        val stateAndRef = services.vaultQueryBy<LOCApplicationState>().states.filter {
+        val stateAndRef = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.filter {
             it.ref.txhash.toString() == ref
         }.first()
 
-        val result = services.startFlow(LOCApprovalFlow::Approve, stateAndRef.ref)
+        val result = rpcOps.startFlow(LOCApprovalFlow::Approve, stateAndRef.ref)
                 .returnValue
                 .getOrThrow()
 
@@ -338,12 +338,12 @@ class ELOCApi(val services: CordaRPCOps) {
     @POST
     @Path("create-trade")
     fun createTrade(invoice: InvoiceData): Response {
-        val buyer = services.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
+        val buyer = rpcOps.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
                 ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${invoice.buyerName} not found.").build()
 
         val state = InvoiceState(me, buyer, true, invoice.toInvoiceProperties())
 
-        val result = services.startFlow(InvoiceFlow::UploadAndSend, buyer, state)
+        val result = rpcOps.startFlow(InvoiceFlow::UploadAndSend, buyer, state)
                 .returnValue
                 .getOrThrow()
 
@@ -353,7 +353,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("ship")
     fun ship(@QueryParam(value = "ref") ref: String): Response {
-        val result = services.startFlow(ShippingFlow::Ship, ref)
+        val result = rpcOps.startFlow(ShippingFlow::Ship, ref)
                 .returnValue
                 .getOrThrow()
 
@@ -363,7 +363,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("pay-seller")
     fun paySeller(@QueryParam(value = "locId") locId: String): Response {
-        val result = services.startFlow(SellerPaymentFlow::MakePayment, locId)
+        val result = rpcOps.startFlow(SellerPaymentFlow::MakePayment, locId)
                 .returnValue
                 .getOrThrow()
 
@@ -373,7 +373,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("pay-adviser")
     fun payAdviser(@QueryParam(value = "locId") locId: String): Response {
-        val result = services.startFlow(AdvisoryPaymentFlow::MakePayment, locId)
+        val result = rpcOps.startFlow(AdvisoryPaymentFlow::MakePayment, locId)
                 .returnValue
                 .getOrThrow()
 
@@ -383,7 +383,7 @@ class ELOCApi(val services: CordaRPCOps) {
     @GET
     @Path("pay-issuer")
     fun payIssuer(@QueryParam(value = "locId") locId: String): Response {
-        val result = services.startFlow(IssuerPaymentFlow::MakePayment, locId)
+        val result = rpcOps.startFlow(IssuerPaymentFlow::MakePayment, locId)
                 .returnValue
                 .getOrThrow()
 
@@ -395,7 +395,7 @@ class ELOCApi(val services: CordaRPCOps) {
      * the transaction that generated them.
      */
     private inline fun <reified T : ContractState> getAllStatesOfTypeWithHashesAndSigs(): Response {
-        val states = services.vaultQueryBy<T>().states
+        val states = rpcOps.vaultQueryBy<T>().states
         return mapStatesToHashesAndSigs(states)
     }
 
@@ -404,7 +404,7 @@ class ELOCApi(val services: CordaRPCOps) {
      * the hashes and signatures of the transaction that generated them.
      */
     private inline fun <reified T : ContractState> getFilteredStatesOfTypeWithHashesAndSigs(filter: (StateAndRef<T>) -> Boolean): Response {
-        val states = services.vaultQueryBy<T>().states.filter(filter)
+        val states = rpcOps.vaultQueryBy<T>().states.filter(filter)
         return mapStatesToHashesAndSigs(states)
     }
 
@@ -412,7 +412,7 @@ class ELOCApi(val services: CordaRPCOps) {
      * Maps the states to the hashes and signatures of the transaction that generated them.
      */
     private fun mapStatesToHashesAndSigs(stateAndRefs: List<StateAndRef<ContractState>>): Response {
-        val transactions = services.internalVerifiedTransactionsSnapshot()
+        val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
 
         val response = stateAndRefs.map { stateAndRef ->
             val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
@@ -429,8 +429,8 @@ class ELOCApi(val services: CordaRPCOps) {
      * and signatures of the transaction that generated it.
      */
     private inline fun <reified T : ContractState> getStateOfTypeWithHashAndSigs(ref: String, filter: (StateAndRef<T>) -> Boolean): Response {
-        val states = services.vaultQueryBy<T>().states
-        val transactions = services.internalVerifiedTransactionsSnapshot()
+        val states = rpcOps.vaultQueryBy<T>().states
+        val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
 
         val stateAndRef = states.find(filter)
                 ?: return Response.status(BAD_REQUEST).entity("State for ref $ref not found.").build()

@@ -1,12 +1,12 @@
 package eloc.flow
 
-import eloc.contract.PackingList
 import eloc.flow.documents.BillOfLadingFlow
 import eloc.flow.documents.PackingListFlow
 import eloc.helpers.bolProperties
 import eloc.helpers.plProperties
 import eloc.state.BillOfLadingState
 import eloc.state.PackingListState
+import eloc.state.PackingListStatus
 import net.corda.core.node.services.queryBy
 import net.corda.core.utilities.getOrThrow
 import net.corda.testing.node.MockNetwork
@@ -65,8 +65,13 @@ class LOCAddDocsFlowTester {
 
     @Test
     fun `record packing list`() {
-
-        val initialState = PackingListState(beneficiaryNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), advisingBankNode.info.legalIdentities.first(), issuerNode.info.legalIdentities.first(), PackingList.Status.SIGNED, plProperties)
+        val initialState = PackingListState(
+                beneficiaryNode.info.legalIdentities.first(),
+                buyerNode.info.legalIdentities.first(),
+                advisingBankNode.info.legalIdentities.first(),
+                issuerNode.info.legalIdentities.first(),
+                PackingListStatus.SIGNED,
+                plProperties)
 
         // kick off flow
         val sellerFlow = PackingListFlow.UploadAndSend(initialState)

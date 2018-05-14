@@ -1,18 +1,15 @@
 package eloc.contract
 
-import eloc.state.LOCApplicationState
-import eloc.state.LOCProperties
-import eloc.state.LOCState
+import eloc.state.LetterOfCreditApplicationState
+import eloc.state.LetterOfCreditState
 import net.corda.core.contracts.*
-import net.corda.core.identity.Party
 import net.corda.core.transactions.LedgerTransaction
-import net.corda.core.transactions.TransactionBuilder
 import net.corda.finance.contracts.asset.Cash
 
-open class LOC : Contract {
+open class LetterOfCreditContract : Contract {
     companion object {
         @JvmStatic
-        val LOC_CONTRACT_ID = "eloc.contract.LOC"
+        val CONTRACT_ID = "eloc.contract.LetterOfCreditContract"
     }
 
     interface Commands : CommandData {
@@ -32,9 +29,9 @@ open class LOC : Contract {
         when (command.value) {
             is Commands.Issuance -> {
                 requireThat {
-                    val output = tx.outputsOfType<LOCState>().single()
-                    // confirms the LOCApplication is included in the transaction
-                    tx.inputsOfType<LOCApplicationState>().single()
+                    val output = tx.outputsOfType<LetterOfCreditState>().single()
+                    // confirms the LetterOfCreditApplication is included in the transaction
+                    tx.inputsOfType<LetterOfCreditApplicationState>().single()
                     requireThat {
                         //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
                         "the LOC must be Issued" using (output.issued == true)
@@ -47,7 +44,7 @@ open class LOC : Contract {
 
             is Commands.AddDocuments -> {
                 requireThat {
-                    val output = tx.outputsOfType<LOCState>().single()
+                    val output = tx.outputsOfType<LetterOfCreditState>().single()
                     "the transaction is not signed by the issuing bank" using (command.signers.contains(output.props.issuingBank.owningKey))
                     "Demand Presentation must not be preformed successfully" using (output.beneficiaryPaid == false)
                     "LOC must not be terminated" using (output.terminated == false)
@@ -56,8 +53,8 @@ open class LOC : Contract {
             }
 
             is Commands.Terminate -> {
-                val input = tx.inputsOfType<LOCState>().single()
-                val output = tx.outputsOfType<LOCState>().single()
+                val input = tx.inputsOfType<LetterOfCreditState>().single()
+                val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "the transaction is signed by the issuing bank" using (command.signers.contains(output.props.issuingBank.owningKey))
                     "the beneficiary has not been paid, status not changed" using (output.beneficiaryPaid == true)
@@ -68,7 +65,7 @@ open class LOC : Contract {
             }
 
             is Commands.ConfirmShipment -> {
-                val output = tx.outputsOfType<LOCState>().single()
+                val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "the transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
                     "the LOC must be Issued" using (output.issued == true)
@@ -76,8 +73,8 @@ open class LOC : Contract {
             }
 
             is Commands.AddPaymentToAdvisory -> {
-                val input = tx.inputsOfType<LOCState>().single()
-                val output = tx.outputsOfType<LOCState>().single()
+                val input = tx.inputsOfType<LetterOfCreditState>().single()
+                val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
                     "Beneficiary has not already been paid" using (input.advisoryPaid == false)
@@ -88,8 +85,8 @@ open class LOC : Contract {
             }
 
             is Commands.AddPaymentToIssuer -> {
-                val input = tx.inputsOfType<LOCState>().single()
-                val output = tx.outputsOfType<LOCState>().single()
+                val input = tx.inputsOfType<LetterOfCreditState>().single()
+                val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
                     "Beneficiary has not already been paid" using (input.issuerPaid == false)
@@ -100,8 +97,8 @@ open class LOC : Contract {
             }
 
             is Commands.AddPaymentToBeneficiary -> {
-                val input = tx.inputsOfType<LOCState>().single()
-                val output = tx.outputsOfType<LOCState>().single()
+                val input = tx.inputsOfType<LetterOfCreditState>().single()
+                val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
                     "Beneficiary has not already been paid" using (input.beneficiaryPaid == false)

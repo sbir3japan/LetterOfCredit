@@ -1,16 +1,15 @@
 package eloc.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.LOC
-import eloc.contract.LOCApplication
-import eloc.state.LOCApplicationState
-import eloc.state.LOCApplicationStatus
-import eloc.state.LOCProperties
-import eloc.state.LOCState
+import eloc.contract.LetterOfCreditApplicationContract
+import eloc.contract.LetterOfCreditContract
+import eloc.state.LetterOfCreditApplicationState
+import eloc.state.LetterOfCreditApplicationStatus
+import eloc.state.LetterOfCreditProperties
+import eloc.state.LetterOfCreditState
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
 import net.corda.core.flows.*
-import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -38,23 +37,23 @@ object LOCApprovalFlow {
         @Suspendable
         override fun call(): SignedTransaction {
             val applicationTxState = serviceHub.loadState(reference)
-            val application = applicationTxState.data as LOCApplicationState
+            val application = applicationTxState.data as LetterOfCreditApplicationState
 
             // Step 1. Generate transaction
             progressTracker.currentStep = GENERATING_APPROVAL_TRANSACTION
             val applicationProps = application.props
-            val LOCProps = LOCProperties(applicationProps, LocalDate.now())
+            val LOCProps = LetterOfCreditProperties(applicationProps, LocalDate.now())
 
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
-            val loc = LOCState(beneficiaryPaid = false, advisoryPaid = false, issuerPaid = false, issued = true, terminated = false, shipped = false, props = LOCProps)
+            val loc = LetterOfCreditState(beneficiaryPaid = false, advisoryPaid = false, issuerPaid = false, issued = true, terminated = false, shipped = false, props = LOCProps)
 
             val builder = TransactionBuilder(notary = notary)
             val appStateAndRef = StateAndRef(state = applicationTxState, ref = reference)
             builder.addInputState(appStateAndRef)
-            builder.addOutputState(application.copy(status = LOCApplicationStatus.APPROVED), LOCApplication.LOC_APPLICATION_CONTRACT_ID)
-            builder.addOutputState(loc, LOC.LOC_CONTRACT_ID)
-            builder.addCommand(LOCApplication.Commands.Approve(), application.issuer.owningKey)
-            builder.addCommand(LOC.Commands.Issuance(), application.issuer.owningKey)
+            builder.addOutputState(application.copy(status = LetterOfCreditApplicationStatus.APPROVED), LetterOfCreditApplicationContract.CONTRACT_ID)
+            builder.addOutputState(loc, LetterOfCreditContract.CONTRACT_ID)
+            builder.addCommand(LetterOfCreditApplicationContract.Commands.Approve(), application.issuer.owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.Issuance(), application.issuer.owningKey)
 
             // Step 2. Add timestamp
             progressTracker.currentStep = SIGNING_TRANSACTION
@@ -104,16 +103,5 @@ object LOCApprovalFlow {
             val stx = subFlow(flow)
             return waitForLedgerCommit(stx.id)
         }
-    }
-}
-
-@CordaSerializable
-sealed class LOCApprovalResult {
-    class Success(val message: String?) : LOCApprovalResult() {
-        override fun toString(): String = "Success($message)"
-    }
-
-    class Failure(val message: String?) : LOCApprovalResult() {
-        override fun toString(): String = "Failure($message)"
     }
 }

@@ -1,8 +1,8 @@
 package eloc.contract
 
 import eloc.state.PackingListState
+import eloc.state.PackingListStatus
 import net.corda.core.contracts.*
-import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
 
 /**
@@ -16,11 +16,11 @@ import net.corda.core.transactions.LedgerTransaction
  * @author Mike
  */
 
-class PackingList: Contract {
+class PackingListContract : Contract {
 
     companion object {
         @JvmStatic
-        val PACKING_LIST_CONTRACT_ID = "eloc.contract.PackingList"
+        val CONTRACT_ID = "eloc.contract.PackingListContract"
     }
 
     interface Commands : CommandData {
@@ -29,14 +29,8 @@ class PackingList: Contract {
         class Communicate : TypeOnlyCommandData(), Commands
     }
 
-    @CordaSerializable
-    enum class Status {
-        DRAFT,
-        SIGNED
-    }
-
     override fun verify(tx: LedgerTransaction) {
-        val command = tx.commands.requireSingleCommand<PackingList.Commands>()
+        val command = tx.commands.requireSingleCommand<Commands>()
 
         val txOutputStates: List<PackingListState> = tx.outputsOfType()
         val txInputStates: List<PackingListState> = tx.inputsOfType()
@@ -58,7 +52,7 @@ class PackingList: Contract {
             }
             is Commands.Communicate -> {
                 requireThat {
-                    "the status is Signed" using (txOutputStates.single().status == Status.SIGNED)
+                    "the status is Signed" using (txOutputStates.single().status == PackingListStatus.SIGNED)
                 }
             }
         }

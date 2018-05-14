@@ -1,10 +1,10 @@
 package eloc.flow.loc
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.BillOfLadingAgreement
-import eloc.contract.LOC
+import eloc.contract.BillOfLadingContract
+import eloc.contract.LetterOfCreditContract
 import eloc.state.BillOfLadingState
-import eloc.state.LOCState
+import eloc.state.LetterOfCreditState
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
@@ -43,7 +43,7 @@ object AdvisoryPaymentFlow {
         override fun call() : SignedTransaction {
 
             // #1 Pull state from vault and reference to payee
-            val locState = serviceHub.vaultService.queryBy<LOCState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
+            val locState = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
             val bolState = serviceHub.vaultService.queryBy<BillOfLadingState>().states.single { it.state.data.props.billOfLadingID == locId }
             val payee = locState.state.data.props.advisingBank
             val newOwner = serviceHub.myInfo.legalIdentities.first()
@@ -66,10 +66,10 @@ object AdvisoryPaymentFlow {
             // #6 Add other states
             builder.addInputState(locState)
             builder.addInputState(bolState)
-            builder.addOutputState(outputState, LOC.LOC_CONTRACT_ID)
-            builder.addOutputState(outputStateBol, BillOfLadingAgreement.BOL_CONTRACT_ID)
-            builder.addCommand(LOC.Commands.AddPaymentToAdvisory(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
-            builder.addCommand(BillOfLadingAgreement.Commands.TransferPossession(), serviceHub.myInfo.legalIdentities.first().owningKey)
+            builder.addOutputState(outputState, LetterOfCreditContract.CONTRACT_ID)
+            builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
+            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToAdvisory(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), serviceHub.myInfo.legalIdentities.first().owningKey)
 
             // #7 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)

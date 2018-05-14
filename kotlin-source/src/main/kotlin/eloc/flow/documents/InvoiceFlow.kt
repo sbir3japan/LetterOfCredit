@@ -1,7 +1,7 @@
 package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.Invoice
+import eloc.contract.InvoiceContract
 import eloc.state.InvoiceState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
@@ -44,11 +44,11 @@ object InvoiceFlow {
             // Step 3. Create invoice and command
             progressTracker.currentStep = ISSUING_INVOICE
             val invoice = submittedInvoice
-            val issueCommand = Command(Invoice.Commands.Issue(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(InvoiceContract.Commands.Issue(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
             // Step 4. Add the invoice as an output state, as well as a command to the transaction builder.
             progressTracker.currentStep = ADDING_STATES
-            builder.addOutputState(invoice, Invoice.INVOICE_CONTRACT_ID)
+            builder.addOutputState(invoice, InvoiceContract.CONTRACT_ID)
             builder.addCommand(issueCommand)
 
             // Step 5. Verify and sign it with our KeyPair.

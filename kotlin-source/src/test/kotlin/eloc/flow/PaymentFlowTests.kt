@@ -1,7 +1,14 @@
 package eloc.flow
 
-import eloc.contract.LOCApplication
-import eloc.contract.LocDataStructures
+import eloc.LetterOfCreditDataStructures.Company
+import eloc.LetterOfCreditDataStructures.CreditType
+import eloc.LetterOfCreditDataStructures.Good
+import eloc.LetterOfCreditDataStructures.Location
+import eloc.LetterOfCreditDataStructures.Person
+import eloc.LetterOfCreditDataStructures.Port
+import eloc.LetterOfCreditDataStructures.PricedGood
+import eloc.LetterOfCreditDataStructures.Weight
+import eloc.LetterOfCreditDataStructures.WeightUnit
 import eloc.flow.documents.BillOfLadingFlow
 import eloc.flow.loc.AdvisoryPaymentFlow
 import eloc.flow.loc.IssuerPaymentFlow
@@ -20,10 +27,10 @@ import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
 import java.util.*
-import java.time.Instant
 
 class PaymentFlowTests {
     lateinit var net: MockNetwork
@@ -61,8 +68,8 @@ class PaymentFlowTests {
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
 
-        // Run approval flow to create LOCState from application
-        val stateAndRef = resultApp.tx.outRef<LOCApplicationState>(0)
+        // Run approval flow to create LetterOfCreditState from application
+        val stateAndRef = resultApp.tx.outRef<LetterOfCreditApplicationState>(0)
         val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
@@ -80,11 +87,11 @@ class PaymentFlowTests {
         future.getOrThrow()
 
         val issuerState = issuerNode.transaction {
-            issuerNode.services.vaultService.queryBy<LOCState>().states.first()
+            issuerNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
         val advisingState = advisingBankNode.transaction {
-            advisingBankNode.services.vaultService.queryBy<LOCState>().states.first()
+            advisingBankNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
         Assert.assertTrue(issuerState.state.data.beneficiaryPaid)
@@ -98,8 +105,8 @@ class PaymentFlowTests {
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
 
-        // Run approval flow to create LOCState from application
-        val stateAndRef = resultApp.tx.outRef<LOCApplicationState>(0)
+        // Run approval flow to create LetterOfCreditState from application
+        val stateAndRef = resultApp.tx.outRef<LetterOfCreditApplicationState>(0)
         val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
@@ -117,11 +124,11 @@ class PaymentFlowTests {
         future.getOrThrow()
 
         val issuerState = issuerNode.transaction {
-            issuerNode.services.vaultService.queryBy<LOCState>().states.first()
+            issuerNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
         val advisingState = advisingBankNode.transaction {
-            advisingBankNode.services.vaultService.queryBy<LOCState>().states.first()
+            advisingBankNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
         Assert.assertTrue(issuerState.state.data.advisoryPaid)
@@ -135,8 +142,8 @@ class PaymentFlowTests {
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
 
-        // Run approval flow to create LOCState from application
-        val stateAndRef = resultApp.tx.outRef<LOCApplicationState>(0)
+        // Run approval flow to create LetterOfCreditState from application
+        val stateAndRef = resultApp.tx.outRef<LetterOfCreditApplicationState>(0)
         val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
@@ -154,11 +161,11 @@ class PaymentFlowTests {
         future.getOrThrow()
 
         val issuerState = issuerNode.transaction {
-            issuerNode.services.vaultService.queryBy<LOCState>().states.first()
+            issuerNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
         val advisingState = advisingBankNode.transaction {
-            advisingBankNode.services.vaultService.queryBy<LOCState>().states.first()
+            advisingBankNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
 
@@ -166,22 +173,22 @@ class PaymentFlowTests {
         Assert.assertTrue(advisingState.state.data.issuerPaid)
     }
 
-    private fun locApplicationState() : LOCApplicationState {
-        val properties = LOCApplicationProperties (
+    private fun locApplicationState() : LetterOfCreditApplicationState {
+        val properties = LetterOfCreditApplicationProperties (
                 letterOfCreditApplicationID = "LOC01",
                 applicationDate = LocalDate.of(2016,5,15),
-                typeCredit = LocDataStructures.CreditType.SIGHT,
+                typeCredit = CreditType.SIGHT,
                 amount = 100000.DOLLARS,
                 expiryDate = LocalDate.of(2017,12,14),
-                portLoading = LocDataStructures.Port("SG","Singapore",null,null,null),
-                portDischarge = LocDataStructures.Port("US","Oakland",null,null,null),
-                descriptionGoods = listOf(LocDataStructures.PricedGood(description="Tiger balm",
+                portLoading = Port("SG","Singapore",null,null,null),
+                portDischarge = Port("US","Oakland",null,null,null),
+                descriptionGoods = listOf(PricedGood(description="Tiger balm",
                         quantity = 10000,
                         grossWeight = null,
                         unitPrice = Amount(1, Currency.getInstance("USD")),
                         purchaseOrderRef = null
                 )),
-                placePresentation = LocDataStructures.Location("US","California","Oakland"),
+                placePresentation = Location("US","California","Oakland"),
                 lastShipmentDate = LocalDate.of(2016,6,12), // TODO does it make sense to include shipment date?
                 periodPresentation = Period.ofDays(31),
                 beneficiary = beneficiaryNode.info.chooseIdentity(),
@@ -191,7 +198,7 @@ class PaymentFlowTests {
                 invoiceRef = StateRef(SecureHash.Companion.randomSHA256(),0)
         )
 
-        return LOCApplicationState(properties.applicant, properties.issuer, LOCApplicationStatus.PENDING_ISSUER_REVIEW, properties, null)
+        return LetterOfCreditApplicationState(properties.applicant, properties.issuer, LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW, properties, null)
     }
 
     private fun billOfLadingState() : BillOfLadingState {
@@ -200,15 +207,15 @@ class PaymentFlowTests {
                 issueDate = LocalDate.of(2017,12,14),
                 carrierOwner = beneficiaryNode.info.chooseIdentity(),
                 nameOfVessel = "CordaShip",
-                descriptionOfGoods = listOf(LocDataStructures.Good(description="Crab meet cans",quantity = 10000,grossWeight = null)),
-                portOfLoading = LocDataStructures.Port(country = "Morokko",city = "Larache",address = null,state = null,name=null),
-                portOfDischarge = LocDataStructures.Port(country = "Belgium",city = "Antwerpen",address = null,state = null,name=null),
-                grossWeight = LocDataStructures.Weight(quantity =  2500.0, unit = LocDataStructures.WeightUnit.KG),
+                descriptionOfGoods = listOf(Good(description="Crab meet cans",quantity = 10000,grossWeight = null)),
+                portOfLoading = Port(country = "Morokko",city = "Larache",address = null,state = null,name=null),
+                portOfDischarge = Port(country = "Belgium",city = "Antwerpen",address = null,state = null,name=null),
+                grossWeight = Weight(quantity =  2500.0, unit = WeightUnit.KG),
                 dateOfShipment = LocalDate.of(2016,5,15),
-                shipper = LocDataStructures.Company(name = "Some company", address = "Some other address", phone = "+11 12345678"),
-                notify = LocDataStructures.Person(name = "Some guy", address = "Some address", phone = "+11 23456789"),
-                consignee = LocDataStructures.Company(name = "Some company", address = "Some other address", phone = "+11 12345678"),
-                placeOfReceipt = LocDataStructures.Location(country = "USA", state ="Iowa", city = "Des Moines")
+                shipper = Company(name = "Some company", address = "Some other address", phone = "+11 12345678"),
+                notify = Person(name = "Some guy", address = "Some address", phone = "+11 23456789"),
+                consignee = Company(name = "Some company", address = "Some other address", phone = "+11 12345678"),
+                placeOfReceipt = Location(country = "USA", state ="Iowa", city = "Des Moines")
         )
 
         return BillOfLadingState(beneficiaryNode.info.chooseIdentity(),applicantNode.info.chooseIdentity(),advisingBankNode.info.chooseIdentity(),issuerNode.info.chooseIdentity(), Instant.now(), properties)

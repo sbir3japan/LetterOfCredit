@@ -1,10 +1,10 @@
 package eloc.flow.loc
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.BillOfLadingAgreement
-import eloc.contract.LOC
+import eloc.contract.BillOfLadingContract
+import eloc.contract.LetterOfCreditContract
 import eloc.state.BillOfLadingState
-import eloc.state.LOCState
+import eloc.state.LetterOfCreditState
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
@@ -50,15 +50,12 @@ object SellerPaymentFlow {
 
         @Suspendable
         override fun call() : SignedTransaction {
-
-            println("starting flow")
             // #1 Pull state from vault and reference to payee
             progressTracker.currentStep = STARTING_FLOW
             progressTracker.currentStep = GATHERING_STATES
-            val locState = serviceHub.vaultService.queryBy<LOCState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
+            val locState = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
             val bolState = serviceHub.vaultService.queryBy<BillOfLadingState>().states.single { it.state.data.props.billOfLadingID == locId }
             val payee = locState.state.data.props.beneficiary
-            println("Payee" + payee.name.organisation)
             val newOwner = serviceHub.myInfo.legalIdentities.first()
 
             // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
@@ -81,10 +78,10 @@ object SellerPaymentFlow {
             // #6 Add other states
             builder.addInputState(locState)
             builder.addInputState(bolState)
-            builder.addOutputState(outputStateLoc, LOC.LOC_CONTRACT_ID)
-            builder.addOutputState(outputStateBol, BillOfLadingAgreement.BOL_CONTRACT_ID)
-            builder.addCommand(LOC.Commands.AddPaymentToBeneficiary(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
-            builder.addCommand(BillOfLadingAgreement.Commands.TransferPossession(), serviceHub.myInfo.legalIdentities.first().owningKey)
+            builder.addOutputState(outputStateLoc, LetterOfCreditContract.CONTRACT_ID)
+            builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
+            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToBeneficiary(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), serviceHub.myInfo.legalIdentities.first().owningKey)
 
             // #7 Let's formalise the transaction by verifying and signing
             progressTracker.currentStep = VERIFYING_TRANSACTION
@@ -123,7 +120,7 @@ object SellerPaymentFlow {
             val flow = object : SignTransactionFlow(counterpartySession) {
                 @Suspendable
                 override fun checkTransaction(stx: SignedTransaction) {
-                    //Do we need to do anything?
+                    // Do we need to do anything?
                 }
             }
 

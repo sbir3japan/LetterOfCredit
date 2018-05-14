@@ -21,11 +21,10 @@ import java.time.ZoneOffset
  *
  */
 
-class Invoice : Contract {
-
+class InvoiceContract : Contract {
     companion object {
         @JvmStatic
-        val INVOICE_CONTRACT_ID = "eloc.contract.Invoice"
+        val CONTRACT_ID = "eloc.contract.InvoiceContract"
     }
 
     interface Commands : CommandData {
@@ -43,7 +42,7 @@ class Invoice : Contract {
      *
      */
     override fun verify(tx: LedgerTransaction) {
-        val command = tx.commands.requireSingleCommand<Invoice.Commands>()
+        val command = tx.commands.requireSingleCommand<Commands>()
 
         val time = Instant.now()
 

@@ -1,7 +1,7 @@
 package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.BillOfLadingAgreement
+import eloc.contract.BillOfLadingContract
 import eloc.state.BillOfLadingState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
@@ -39,10 +39,10 @@ object BillOfLadingFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // Step 3. Create command
-            val issueCommand = Command(BillOfLadingAgreement.Commands.IssueBL(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(BillOfLadingContract.Commands.IssueBL(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
             // Step 4. Add the bol as an output state, as well as a command to the transaction builder.
-            builder.addOutputState(billOfLading, BillOfLadingAgreement.BOL_CONTRACT_ID)
+            builder.addOutputState(billOfLading, BillOfLadingContract.CONTRACT_ID)
             builder.addCommand(issueCommand)
 
             // Step 5. Verify

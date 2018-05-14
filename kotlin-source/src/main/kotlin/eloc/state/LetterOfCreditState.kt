@@ -1,6 +1,9 @@
 package eloc.state
 
-import eloc.contract.LocDataStructures
+import eloc.LetterOfCreditDataStructures.Port
+import eloc.LetterOfCreditDataStructures.CreditType
+import eloc.LetterOfCreditDataStructures.PricedGood
+import eloc.LetterOfCreditDataStructures.Location
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.StateRef
@@ -11,23 +14,23 @@ import java.time.LocalDate
 import java.time.Period
 import java.util.*
 
-data class LOCState(
+data class LetterOfCreditState(
         val beneficiaryPaid: Boolean,
         val advisoryPaid: Boolean,
         val issuerPaid: Boolean,
         val issued: Boolean,
         val shipped: Boolean,
         val terminated: Boolean,
-        val props: LOCProperties) : LinearState {
+        val props: LetterOfCreditProperties) : LinearState {
 
     override val linearId = UniqueIdentifier(props.letterOfCreditID)
 
     override val participants get() = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
 
-    fun beneficiaryPaid(): LOCState = copy(beneficiaryPaid = true)
-    fun issuerPaid(): LOCState = copy(issuerPaid = true)
-    fun advisoryPaid(): LOCState = copy(advisoryPaid = true)
-    fun shipped(): LOCState = copy(shipped = true)
+    fun beneficiaryPaid(): LetterOfCreditState = copy(beneficiaryPaid = true)
+    fun issuerPaid(): LetterOfCreditState = copy(issuerPaid = true)
+    fun advisoryPaid(): LetterOfCreditState = copy(advisoryPaid = true)
+    fun shipped(): LetterOfCreditState = copy(shipped = true)
 
     val status: String get() {
         return when {
@@ -42,18 +45,18 @@ data class LOCState(
 }
 
 @CordaSerializable
-data class LOCProperties (
+data class LetterOfCreditProperties (
         val letterOfCreditID: String,
         val applicationDate: LocalDate,
         val issueDate: LocalDate,
-        val typeCredit: LocDataStructures.CreditType,
+        val typeCredit: CreditType,
         val amount: Amount<Currency>,
         val invoiceRef: StateRef,
         val expiryDate: LocalDate,
-        val portLoading: LocDataStructures.Port,
-        val portDischarge: LocDataStructures.Port,
-        val descriptionGoods: List<LocDataStructures.PricedGood>,
-        val placePresentation: LocDataStructures.Location,
+        val portLoading: Port,
+        val portDischarge: Port,
+        val descriptionGoods: List<PricedGood>,
+        val placePresentation: Location,
         val latestShip: LocalDate,
         val periodPresentation: Period,
         val beneficiary: Party,
@@ -61,7 +64,7 @@ data class LOCProperties (
         val applicant: Party,
         val advisingBank: Party) {
 
-    constructor(applicationProps: LOCApplicationProperties, issueDate: LocalDate) : this(
+    constructor(applicationProps: LetterOfCreditApplicationProperties, issueDate: LocalDate) : this(
             letterOfCreditID = applicationProps.letterOfCreditApplicationID,
             applicationDate = applicationProps.applicationDate,
             issueDate = issueDate,

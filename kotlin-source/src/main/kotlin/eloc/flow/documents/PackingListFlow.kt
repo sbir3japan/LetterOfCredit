@@ -1,11 +1,10 @@
 package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.PackingList
+import eloc.contract.PackingListContract
 import eloc.state.PackingListState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
-import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -40,10 +39,10 @@ object PackingListFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // Step 3. Create command
-            val issueCommand = Command(PackingList.Commands.Create(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(PackingListContract.Commands.Create(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
             // Step 4. Add the packing list as an output state, as well as a command to the transaction builder.
-            builder.addOutputState(packingList, PackingList.PACKING_LIST_CONTRACT_ID)
+            builder.addOutputState(packingList, PackingListContract.CONTRACT_ID)
             builder.addCommand(issueCommand)
 
             // Step 5. Verify and sign it with our KeyPair.

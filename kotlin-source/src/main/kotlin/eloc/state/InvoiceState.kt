@@ -1,14 +1,13 @@
 package eloc.state
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import eloc.contract.Invoice
-import eloc.contract.LocDataStructures
+import eloc.LetterOfCreditDataStructures.Company
+import eloc.LetterOfCreditDataStructures.PricedGood
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
-import net.corda.core.transactions.TransactionBuilder
 import java.time.LocalDate
 import java.util.*
 
@@ -28,12 +27,12 @@ data class InvoiceState(
 @CordaSerializable
 data class InvoiceProperties(
         val invoiceID: String,
-        val seller: LocDataStructures.Company,
-        val buyer: LocDataStructures.Company,
+        val seller: Company,
+        val buyer: Company,
         val invoiceDate: LocalDate,
         val attachmentHash: SecureHash,
         val term: Long,
-        val goods: List<LocDataStructures.PricedGood> = ArrayList()) {
+        val goods: List<PricedGood> = ArrayList()) {
 
     init {
         require(term > 0) { "the term must be a positive number" }
