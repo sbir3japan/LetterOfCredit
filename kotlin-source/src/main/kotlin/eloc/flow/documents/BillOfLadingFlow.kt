@@ -5,6 +5,7 @@ import eloc.contract.BillOfLadingContract
 import eloc.state.BillOfLadingState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
+import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -30,30 +31,36 @@ object BillOfLadingFlow {
 
         @Suspendable
         override fun call(): SignedTransaction {
+            // Step 1. Check a bill of lading doesn't already exist for this letter of credit.
+            val bolStates = serviceHub.vaultService.queryBy<BillOfLadingState>().states.filter {
+                it.state.data.props.billOfLadingID == billOfLading.props.billOfLadingID
+            }
+            if (!bolStates.isEmpty()) throw Exception("Bill of lading state with ID ${billOfLading.props.billOfLadingID} already exists.")
+
             progressTracker.currentStep = ISSUING_INVOICE
-            // Step 1. Get a reference to the notary service on our network and our key pair.
+            // Step 2. Get a reference to the notary service on our network and our key pair.
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
-            // Step 2. Create a new TransactionBuilder object.
+            // Step 3. Create a new TransactionBuilder object.
             val builder = TransactionBuilder(notary)
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
-            // Step 3. Create command
+            // Step 4. Create command
             val issueCommand = Command(BillOfLadingContract.Commands.IssueBL(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
-            // Step 4. Add the bol as an output state, as well as a command to the transaction builder.
+            // Step 5. Add the bol as an output state, as well as a command to the transaction builder.
             builder.addOutputState(billOfLading, BillOfLadingContract.CONTRACT_ID)
             builder.addCommand(issueCommand)
 
-            // Step 5. Verify
+            // Step 6. Verify
             progressTracker.currentStep = VERIFYING_TX
             builder.verify(serviceHub)
 
-            // Step 6. Create signed transaction
+            // Step 7. Create signed transaction
             progressTracker.currentStep = SIGNING_TX
             val stx = serviceHub.signInitialTransaction(builder)
 
-            // Step 6. Assuming no exceptions, we can now finalise the transaction.
+            // Step 8. Assuming no exceptions, we can now finalise the transaction.
             return subFlow(FinalityFlow(stx))
         }
     }

@@ -2,9 +2,11 @@ package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.PackingListContract
+import eloc.state.BillOfLadingState
 import eloc.state.PackingListState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
+import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -30,26 +32,32 @@ object PackingListFlow {
 
         @Suspendable
         override fun call(): SignedTransaction {
+            // Step 1. Check a packing list doesn't already exist for this letter of credit.
+            val plStates = serviceHub.vaultService.queryBy<PackingListState>().states.filter {
+                it.state.data.props.billOfLadingNumber == packingList.props.billOfLadingNumber
+            }
+            if (!plStates.isEmpty()) throw Exception("Packing list state with ID ${packingList.props.billOfLadingNumber} already exists.")
+
             progressTracker.currentStep = ISSUING_PACKINGLIST
-            // Step 1. Get a reference to the notary service on our network and our key pair.
+            // Step 2. Get a reference to the notary service on our network and our key pair.
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
-            // Step 2. Create a new TransactionBuilder object.
+            // Step 3. Create a new TransactionBuilder object.
             val builder = TransactionBuilder(notary)
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
-            // Step 3. Create command
+            // Step 4. Create command
             val issueCommand = Command(PackingListContract.Commands.Create(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
-            // Step 4. Add the packing list as an output state, as well as a command to the transaction builder.
+            // Step 5. Add the packing list as an output state, as well as a command to the transaction builder.
             builder.addOutputState(packingList, PackingListContract.CONTRACT_ID)
             builder.addCommand(issueCommand)
 
-            // Step 5. Verify and sign it with our KeyPair.
+            // Step 6. Verify and sign it with our KeyPair.
             builder.verify(serviceHub)
             val stx = serviceHub.signInitialTransaction(builder)
 
-            // Step 6. Assuming no exceptions, we can now finalise the transaction.
+            // Step 7. Assuming no exceptions, we can now finalise the transaction.
             return subFlow(FinalityFlow(stx))
         }
     }
