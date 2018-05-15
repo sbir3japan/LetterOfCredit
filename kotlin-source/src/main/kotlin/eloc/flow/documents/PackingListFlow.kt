@@ -33,10 +33,10 @@ object PackingListFlow {
         @Suspendable
         override fun call(): SignedTransaction {
             // Step 1. Check a packing list doesn't already exist for this letter of credit.
-            val plStates = serviceHub.vaultService.queryBy<PackingListState>().states.filter {
+            val plStateCount = serviceHub.vaultService.queryBy<PackingListState>().states.count {
                 it.state.data.props.billOfLadingNumber == packingList.props.billOfLadingNumber
             }
-            if (!plStates.isEmpty()) throw Exception("Packing list state with ID ${packingList.props.billOfLadingNumber} already exists.")
+            if (plStateCount != 0) throw Exception("Packing list state with ID ${packingList.props.billOfLadingNumber} already exists.")
 
             progressTracker.currentStep = ISSUING_PACKINGLIST
             // Step 2. Get a reference to the notary service on our network and our key pair.

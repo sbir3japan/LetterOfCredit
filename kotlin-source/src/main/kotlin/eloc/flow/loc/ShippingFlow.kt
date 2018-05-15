@@ -41,11 +41,19 @@ object ShippingFlow {
         @Suspendable
         override fun call() : SignedTransaction {
             // #1 Pull state from vault and reference to payee
-            val locState = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
+            // TODO: No hardcoded strings. Move to an enum.
+            val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter { it.state.data.status == "Active" && it.state.data.props.letterOfCreditID == locId }
+            if (locStates.isEmpty()) throw Exception("Unshipped letter of credit state with ID $locId not found.")
+            if (locStates.size > 1) throw Exception("Several unshipped letter of credit states with ID $locId found.")
+            val locState = locStates.single()
 
             // #2 Check that bill of lading and packing list have been created, this will throw an error if exactly one of each doesn't exist.
-            serviceHub.vaultService.queryBy<BillOfLadingState>().states.single { it.state.data.props.billOfLadingID == locId }
-            serviceHub.vaultService.queryBy<PackingListState>().states.single { it.state.data.props.billOfLadingNumber == locId }
+            val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count { it.state.data.props.billOfLadingID == locId }
+            if (bolStateCount == 0) throw Exception("Bill of lading state with ID $locId not found.")
+            if (bolStateCount > 1) throw Exception("Several bill of lading states with ID $locId found.")
+            val plStateCount = serviceHub.vaultService.queryBy<PackingListState>().states.count { it.state.data.props.billOfLadingNumber == locId }
+            if (plStateCount == 0) throw Exception("Packing list state with ID $locId not found.")
+            if (plStateCount > 1) throw Exception("Several packing list states with ID $locId found.")
 
             // #3 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION
