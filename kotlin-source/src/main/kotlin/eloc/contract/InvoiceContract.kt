@@ -29,8 +29,6 @@ class InvoiceContract : Contract {
 
     interface Commands : CommandData {
         class Issue : TypeOnlyCommandData(), Commands
-        class Assign : TypeOnlyCommandData(), Commands
-        class Extinguish : TypeOnlyCommandData(), Commands
     }
 
     /** The Invoice contract needs to handle three commands
@@ -64,28 +62,6 @@ class InvoiceContract : Contract {
                     "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
                             > time)
                     "there must be goods associated with the invoice" using (issueOutput.props.goods.isNotEmpty())
-                }
-            }
-            is Commands.Assign -> {
-                val assignInput: InvoiceState = tx.inputsOfType<InvoiceState>().single()
-                val assignOutput: InvoiceState = tx.outputsOfType<InvoiceState>().single()
-
-                requireThat {
-                    "input state owner must be the same as the output state owner" using (assignInput.owner == assignOutput.owner)
-                    "the transaction must be signed by the owner" using (command.signers.contains(assignInput.owner.owningKey))
-                    "the input invoice must not be assigned" using (assignInput.assigned == false)
-                    "the output invoice must be assigned" using (assignOutput.assigned == true)
-                    "the loc date must be in the future" using (assignInput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC) > time)
-                }
-            }
-            is Commands.Extinguish -> {
-                val extinguishInput: InvoiceState = tx.inputsOfType<InvoiceState>().single()
-                val extinguishOutput: InvoiceState? = tx.outputsOfType<InvoiceState>().singleOrNull()
-
-                requireThat {
-                    "there shouldn't be an output state" using (extinguishOutput == null)
-                    "the transaction must be signed by the owner" using (command.signers.contains(extinguishInput.owner.owningKey))
-                    "the loc date must be today or in the past" using (extinguishInput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC) < time)
                 }
             }
         }

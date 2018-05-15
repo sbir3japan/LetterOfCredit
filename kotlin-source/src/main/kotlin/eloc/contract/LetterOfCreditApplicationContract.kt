@@ -16,7 +16,6 @@ class LetterOfCreditApplicationContract : Contract {
     }
 
     override fun verify(tx: LedgerTransaction) {
-
         val command = tx.commands.requireSingleCommand<Commands>()
 
         when (command.value) {
@@ -27,6 +26,9 @@ class LetterOfCreditApplicationContract : Contract {
                     "there is no input state" using tx.inputStates.isEmpty()
                     "the output status must be pending issuer review" using (output.status == LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW)
                 }
+            }
+            is Commands.Approve -> {
+                // TODO: Add approval logic.
             }
         }
     }

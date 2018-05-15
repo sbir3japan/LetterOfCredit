@@ -6,7 +6,6 @@ import eloc.helpers.bolProperties
 import eloc.helpers.plProperties
 import eloc.state.BillOfLadingState
 import eloc.state.PackingListState
-import eloc.state.PackingListStatus
 import net.corda.core.node.services.queryBy
 import net.corda.core.utilities.getOrThrow
 import net.corda.testing.node.MockNetwork
@@ -70,7 +69,6 @@ class LOCAddDocsFlowTester {
                 buyerNode.info.legalIdentities.first(),
                 advisingBankNode.info.legalIdentities.first(),
                 issuerNode.info.legalIdentities.first(),
-                PackingListStatus.SIGNED,
                 plProperties)
 
         // kick off flow

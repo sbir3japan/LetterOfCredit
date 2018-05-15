@@ -1,9 +1,9 @@
 package eloc.state
 
-import eloc.LetterOfCreditDataStructures.Port
 import eloc.LetterOfCreditDataStructures.CreditType
-import eloc.LetterOfCreditDataStructures.PricedGood
 import eloc.LetterOfCreditDataStructures.Location
+import eloc.LetterOfCreditDataStructures.Port
+import eloc.LetterOfCreditDataStructures.PricedGood
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.StateRef
@@ -24,13 +24,12 @@ data class LetterOfCreditState(
         val props: LetterOfCreditProperties) : LinearState {
 
     override val linearId = UniqueIdentifier(props.letterOfCreditID)
+    override val participants = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
 
-    override val participants get() = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
-
-    fun beneficiaryPaid(): LetterOfCreditState = copy(beneficiaryPaid = true)
-    fun issuerPaid(): LetterOfCreditState = copy(issuerPaid = true)
-    fun advisoryPaid(): LetterOfCreditState = copy(advisoryPaid = true)
-    fun shipped(): LetterOfCreditState = copy(shipped = true)
+    fun beneficiaryPaid() = copy(beneficiaryPaid = true)
+    fun issuerPaid() = copy(issuerPaid = true)
+    fun advisoryPaid() = copy(advisoryPaid = true)
+    fun shipped() = copy(shipped = true)
 }
 
 @CordaSerializable

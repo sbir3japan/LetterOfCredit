@@ -14,12 +14,10 @@ data class PackingListState(
         val buyer: Party,
         val advisory: Party,
         val issuer: Party,
-        val status: PackingListStatus,
         val props: PackingListProperties) : LinearState {
 
     override val linearId = UniqueIdentifier(props.orderNumber)
-
-    override val participants get() = listOf( seller, buyer, advisory, issuer )
+    override val participants = listOf(seller, buyer, advisory, issuer)
 }
 
 @CordaSerializable
@@ -34,9 +32,3 @@ data class PackingListProperties (
         val buyer: Company?,
         val descriptionOfGoods: List<PricedGood>,
         val attachmentHash: SecureHash)
-
-@CordaSerializable
-enum class PackingListStatus {
-    DRAFT,
-    SIGNED
-}

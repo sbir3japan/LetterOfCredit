@@ -1,7 +1,6 @@
 package eloc.contract
 
 import eloc.state.PackingListState
-import eloc.state.PackingListStatus
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 
@@ -25,8 +24,6 @@ class PackingListContract : Contract {
 
     interface Commands : CommandData {
         class Create : TypeOnlyCommandData(), Commands
-        class Update : TypeOnlyCommandData(), Commands
-        class Communicate : TypeOnlyCommandData(), Commands
     }
 
     override fun verify(tx: LedgerTransaction) {
@@ -40,19 +37,6 @@ class PackingListContract : Contract {
                 requireThat {
                     "there is no input state" using txInputStates.isEmpty()
                     "there is one output state" using (txOutputStates.size == 1)
-                }
-            }
-            is Commands.Update -> {
-                requireThat {
-                    "the transaction is signed by the buyer" using (command.signers.contains(txOutputStates.single().seller.owningKey))
-                    "same buyer" using (txInputStates.single().seller == txOutputStates.single().seller)
-                    "there is one input state" using (txInputStates.size == 1)
-                    "there is one output state" using (txOutputStates.size == 1)
-                }
-            }
-            is Commands.Communicate -> {
-                requireThat {
-                    "the status is Signed" using (txOutputStates.single().status == PackingListStatus.SIGNED)
                 }
             }
         }

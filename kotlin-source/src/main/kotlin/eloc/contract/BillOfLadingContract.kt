@@ -26,7 +26,7 @@ class BillOfLadingContract : Contract {
     }
 
     interface Commands : CommandData {
-        class IssueBL : TypeOnlyCommandData(), Commands
+        class IssueBillOfLading : TypeOnlyCommandData(), Commands
         class TransferPossession : TypeOnlyCommandData(), Commands
     }
 
@@ -42,7 +42,7 @@ class BillOfLadingContract : Contract {
         val txInputStates: List<BillOfLadingState> = tx.inputsOfType()
 
         when (command.value) {
-            is Commands.IssueBL -> {
+            is Commands.IssueBillOfLading -> {
                 requireThat {
                     "there is no input state" using txInputStates.isEmpty()
                     "there is one output state" using (txOutputStates.size == 1)

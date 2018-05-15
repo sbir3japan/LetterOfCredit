@@ -14,12 +14,10 @@ open class LetterOfCreditContract : Contract {
 
     interface Commands : CommandData {
         class Issuance : TypeOnlyCommandData(), Commands
-        class AddDocuments : TypeOnlyCommandData(), Commands
         class ConfirmShipment : TypeOnlyCommandData(), Commands
         class AddPaymentToAdvisory :TypeOnlyCommandData(), Commands
         class AddPaymentToIssuer :TypeOnlyCommandData(), Commands
         class AddPaymentToBeneficiary : TypeOnlyCommandData(), Commands
-        class Terminate : TypeOnlyCommandData(), Commands
     }
 
     override fun verify(tx: LedgerTransaction) {
@@ -39,28 +37,6 @@ open class LetterOfCreditContract : Contract {
                         "LOC must not be terminated" using (output.terminated == false)
                         "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                     }
-                }
-            }
-
-            is Commands.AddDocuments -> {
-                requireThat {
-                    val output = tx.outputsOfType<LetterOfCreditState>().single()
-                    "the transaction is not signed by the issuing bank" using (command.signers.contains(output.props.issuingBank.owningKey))
-                    "Demand Presentation must not be preformed successfully" using (output.beneficiaryPaid == false)
-                    "LOC must not be terminated" using (output.terminated == false)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
-                }
-            }
-
-            is Commands.Terminate -> {
-                val input = tx.inputsOfType<LetterOfCreditState>().single()
-                val output = tx.outputsOfType<LetterOfCreditState>().single()
-                requireThat {
-                    "the transaction is signed by the issuing bank" using (command.signers.contains(output.props.issuingBank.owningKey))
-                    "the beneficiary has not been paid, status not changed" using (output.beneficiaryPaid == true)
-                    "the LOC must be Issued" using (output.issued == true)
-                    "LOC should be terminated" using (output.terminated == true)
-                    "the LOC properties do not remain the same" using (input.props.equals(output.props))
                 }
             }
 

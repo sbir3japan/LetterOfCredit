@@ -1,11 +1,11 @@
 package eloc.state
 
+import eloc.LetterOfCreditDataStructures.Company
 import eloc.LetterOfCreditDataStructures.Good
+import eloc.LetterOfCreditDataStructures.Location
+import eloc.LetterOfCreditDataStructures.Person
 import eloc.LetterOfCreditDataStructures.Port
 import eloc.LetterOfCreditDataStructures.Weight
-import eloc.LetterOfCreditDataStructures.Company
-import eloc.LetterOfCreditDataStructures.Person
-import eloc.LetterOfCreditDataStructures.Location
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.Party
@@ -21,10 +21,8 @@ data class BillOfLadingState(
         val issuer: Party,
         val timestamp: Instant,
         val props: BillOfLadingProperties) : LinearState {
-
     override val linearId = UniqueIdentifier(props.billOfLadingID)
-
-    override val participants get() = listOf(owner, buyer, advisory, issuer)
+    override val participants = listOf(owner, buyer, advisory, issuer)
 }
 
 @CordaSerializable
