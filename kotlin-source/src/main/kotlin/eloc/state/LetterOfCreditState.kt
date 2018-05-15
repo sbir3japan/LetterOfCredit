@@ -31,17 +31,6 @@ data class LetterOfCreditState(
     fun issuerPaid(): LetterOfCreditState = copy(issuerPaid = true)
     fun advisoryPaid(): LetterOfCreditState = copy(advisoryPaid = true)
     fun shipped(): LetterOfCreditState = copy(shipped = true)
-
-    val status: String get() {
-        return when {
-            terminated -> "Terminated"
-            issuerPaid -> "Issuer Paid"
-            advisoryPaid -> "Advisory Paid"
-            beneficiaryPaid -> "Seller Paid"
-            shipped -> "Shipped"
-            else -> "Active"
-        }
-    }
 }
 
 @CordaSerializable

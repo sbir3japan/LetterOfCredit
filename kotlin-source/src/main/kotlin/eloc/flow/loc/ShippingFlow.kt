@@ -41,8 +41,7 @@ object ShippingFlow {
         @Suspendable
         override fun call() : SignedTransaction {
             // #1 Pull state from vault and reference to payee
-            // TODO: No hardcoded strings. Move to an enum.
-            val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter { it.state.data.status == "Active" && it.state.data.props.letterOfCreditID == locId }
+            val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter { !it.state.data.shipped && it.state.data.props.letterOfCreditID == locId }
             if (locStates.isEmpty()) throw Exception("Unshipped letter of credit state with ID $locId not found.")
             if (locStates.size > 1) throw Exception("Several unshipped letter of credit states with ID $locId found.")
             val locState = locStates.single()
