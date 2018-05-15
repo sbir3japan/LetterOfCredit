@@ -40,7 +40,6 @@ object ShippingFlow {
 
         @Suspendable
         override fun call() : SignedTransaction {
-
             // #1 Pull state from vault and reference to payee
             val locState = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.single { !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId }
 

@@ -35,7 +35,6 @@ import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status.BAD_REQUEST
-import javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 
 @Path("loc")
 class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
@@ -67,23 +66,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         return mapOf("peers" to nodeInfo
                 .map { it.legalIdentities.first().name }
                 .filter { it != myLegalName && it !in SERVICE_NODE_NAMES })
-    }
-
-    /**
-     * Until WildFire is integrated, we can self-issue cash
-     */
-    @GET
-    @Path("issue-cash")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun issueCash(): Response {
-        val notary = rpcOps.notaryIdentities().firstOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("Could not find a notary.").type(MediaType.APPLICATION_JSON).build()
-        val issueRef = OpaqueBytes.of(0)
-        val issueRequest = CashIssueFlow.IssueRequest(10000000.DOLLARS, issueRef, notary)
-
-        val flowHandle = rpcOps.startFlowDynamic(CashIssueFlow::class.java, issueRequest)
-        val result = flowHandle.use { it.returnValue.getOrThrow() }
-        return Response.ok(result.stx.tx.outputs.single().data).build()
     }
 
     /**
@@ -207,7 +189,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
             { stateAndRef: StateAndRef<PackingListState> -> stateAndRef.state.data.props.orderNumber == ref }
     )
 
-    // TODO: This shouldn't require using a flow. Investigate.
     /**
      * Fetches events concerning bill of lading state that matches ref.
      */
@@ -251,15 +232,50 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
                 "awaitingPayment" to awaitingPayment)
     }
 
+    /**
+     * Until WildFire is integrated, we can self-issue cash.
+     */
+    @GET
+    @Path("issue-cash")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun issueCash(): Response {
+        val notary = rpcOps.notaryIdentities().firstOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("Could not find a notary.").type(MediaType.APPLICATION_JSON).build()
+        val issueRef = OpaqueBytes.of(0)
+        val issueRequest = CashIssueFlow.IssueRequest(10000000.DOLLARS, issueRef, notary)
+
+        val flowHandle = rpcOps.startFlowDynamic(CashIssueFlow::class.java, issueRequest)
+        val result = flowHandle.returnValue.getOrThrow()
+        return Response.ok(result.stx.tx.outputs.single().data).build()
+    }
+
+    @POST
+    @Path("create-trade")
+    fun createTrade(invoice: InvoiceData): Response {
+        val buyer = rpcOps.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("${invoice.buyerName} not found.").build()
+
+        val state = InvoiceState(me, buyer, true, invoice.toInvoiceProperties())
+
+        val flowFuture = rpcOps.startFlow(InvoiceFlow::UploadAndSend, buyer, state).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
+
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
+    }
+
     @POST
     @Path("apply-for-loc")
     fun applyForLoc(loc: LocApplicationData): Response {
         val beneficiary = rpcOps.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.beneficiary} not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("${loc.beneficiary} not found.").build()
         val issuing = rpcOps.partiesFromName(loc.issuer, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.issuer} not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("${loc.issuer} not found.").build()
         val advising = rpcOps.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${loc.advisingBank} not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("${loc.advisingBank} not found.").build()
 
         val application = LetterOfCreditApplicationState(
                 owner = me,
@@ -268,54 +284,12 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
                 props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising),
                 purchaseOrder = null)
 
-        val result = rpcOps.startFlow(::Apply, application).returnValue.getOrThrow()
-
-        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
-    }
-
-    @POST
-    @Path("submit-bol")
-    fun submitBol(billOfLading: BillOfLadingData): Response {
-        // Check bill of lading hasn't already been added.
-        if (rpcOps.vaultQueryBy<BillOfLadingState>().states.filter { it.state.data.props.billOfLadingID == billOfLading.billOfLadingId }.count() > 0) {
-            return Response.accepted().entity("Bill of Lading already added").build()
+        val flowFuture = rpcOps.startFlow(::Apply, application).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
         }
-
-        val buyer = rpcOps.partiesFromName(billOfLading.buyer, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.buyer} not found.").build()
-        val advisingBank = rpcOps.partiesFromName(billOfLading.advisingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.advisingBank} not found.").build()
-        val issuingBank = rpcOps.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${billOfLading.issuingBank} not found.").build()
-
-        val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
-
-        val result = rpcOps.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue.getOrThrow()
-
-        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
-    }
-
-    @POST
-    @Path("submit-pl")
-    fun submitPackingList(packingList: PackingListData): Response {
-
-        // Check bill of lading hasn't already been added.
-        if (rpcOps.vaultQueryBy<PackingListState>().states.filter { it.state.data.props.billOfLadingNumber == packingList.billOfLadingNumber }.count() > 0) {
-            return Response.accepted().entity("Packing List already added").build()
-        }
-
-        val buyer = rpcOps.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.buyerName} not found.").build()
-        val advisingBank = rpcOps.partiesFromName(packingList.advisingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.advisingBank} not found.").build()
-        val issuingBank = rpcOps.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${packingList.issuingBank} not found.").build()
-
-        val state = PackingListState(buyer, me, advisingBank, issuingBank, PackingListStatus.DRAFT, packingList.toPackingListProperties())
-
-        val result = rpcOps.startFlow(PackingListFlow::UploadAndSend, state)
-                .returnValue
-                .getOrThrow()
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
@@ -323,29 +297,60 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("approve-loc")
     fun approveLetterOfCreditApplication(@QueryParam(value = "ref") ref: String): Response {
-
-        val stateAndRef = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.filter {
+        val stateAndRef = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.first {
             it.ref.txhash.toString() == ref
-        }.first()
+        }
 
-        val result = rpcOps.startFlow(LOCApprovalFlow::Approve, stateAndRef.ref)
-                .returnValue
-                .getOrThrow()
+        val flowFuture = rpcOps.startFlow(LOCApprovalFlow::Approve, stateAndRef.ref).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
     @POST
-    @Path("create-trade")
-    fun createTrade(invoice: InvoiceData): Response {
-        val buyer = rpcOps.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
-                ?: return Response.status(INTERNAL_SERVER_ERROR).entity("${invoice.buyerName} not found.").build()
+    @Path("submit-bol")
+    fun submitBol(billOfLading: BillOfLadingData): Response {
+        val buyer = rpcOps.partiesFromName(billOfLading.buyer, exactMatch = false).singleOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("${billOfLading.buyer} not found.").build()
+        val advisingBank = rpcOps.partiesFromName(billOfLading.advisingBank, exactMatch = false).singleOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("${billOfLading.advisingBank} not found.").build()
+        val issuingBank = rpcOps.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("${billOfLading.issuingBank} not found.").build()
 
-        val state = InvoiceState(me, buyer, true, invoice.toInvoiceProperties())
+        val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
 
-        val result = rpcOps.startFlow(InvoiceFlow::UploadAndSend, buyer, state)
-                .returnValue
-                .getOrThrow()
+        val flowFuture = rpcOps.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
+
+        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
+    }
+
+    @POST
+    @Path("submit-pl")
+    fun submitPackingList(packingList: PackingListData): Response {
+        val buyer = rpcOps.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("${packingList.buyerName} not found.").build()
+        val advisingBank = rpcOps.partiesFromName(packingList.advisingBank, exactMatch = false).singleOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("${packingList.advisingBank} not found.").build()
+        val issuingBank = rpcOps.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
+                ?: return Response.status(BAD_REQUEST).entity("${packingList.issuingBank} not found.").build()
+
+        val state = PackingListState(buyer, me, advisingBank, issuingBank, PackingListStatus.DRAFT, packingList.toPackingListProperties())
+
+        val flowFuture = rpcOps.startFlow(PackingListFlow::UploadAndSend, state).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
@@ -353,9 +358,12 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("ship")
     fun ship(@QueryParam(value = "ref") ref: String): Response {
-        val result = rpcOps.startFlow(ShippingFlow::Ship, ref)
-                .returnValue
-                .getOrThrow()
+        val flowFuture = rpcOps.startFlow(ShippingFlow::Ship, ref).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
@@ -363,9 +371,12 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("pay-seller")
     fun paySeller(@QueryParam(value = "locId") locId: String): Response {
-        val result = rpcOps.startFlow(SellerPaymentFlow::MakePayment, locId)
-                .returnValue
-                .getOrThrow()
+        val flowFuture = rpcOps.startFlow(SellerPaymentFlow::MakePayment, locId).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
@@ -373,9 +384,12 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("pay-adviser")
     fun payAdviser(@QueryParam(value = "locId") locId: String): Response {
-        val result = rpcOps.startFlow(AdvisoryPaymentFlow::MakePayment, locId)
-                .returnValue
-                .getOrThrow()
+        val flowFuture = rpcOps.startFlow(AdvisoryPaymentFlow::MakePayment, locId).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
@@ -383,9 +397,12 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("pay-issuer")
     fun payIssuer(@QueryParam(value = "locId") locId: String): Response {
-        val result = rpcOps.startFlow(IssuerPaymentFlow::MakePayment, locId)
-                .returnValue
-                .getOrThrow()
+        val flowFuture = rpcOps.startFlow(IssuerPaymentFlow::MakePayment, locId).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
