@@ -2,6 +2,7 @@ package eloc.contract
 
 import eloc.state.InvoiceProperties
 import eloc.state.InvoiceState
+import eloc.state.LetterOfCreditApplicationState
 import net.corda.core.contracts.*
 import net.corda.core.identity.Party
 import net.corda.core.transactions.LedgerTransaction
@@ -83,6 +84,10 @@ class InvoiceContract : Contract {
             }
 
             is Commands.Extinguish -> {
+                val locAppInput: LetterOfCreditApplicationState = tx.inputsOfType<LetterOfCreditApplicationState>().single()
+                requireThat {
+                    "Issuing bank should terminate the Invoice State" using (command.signers.contains(locAppInput.issuer.owningKey))
+                }
 
             }
         }

@@ -46,7 +46,7 @@ class ApproveLocForLegitimateInvoice {
     }
 
     @Test
-    fun `create tradeAndApproveLoc`() {
+    fun `createTradeAndApproveLoc`() {
         val invoice = InvoiceProperties(
                 invoiceID = "test",
                 seller = LetterOfCreditDataStructures.Company("sellerName", "sellerAddress", ""),
