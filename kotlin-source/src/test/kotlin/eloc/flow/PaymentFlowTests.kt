@@ -70,7 +70,8 @@ class PaymentFlowTests {
 
         // Run approval flow to create LetterOfCreditState from application
         val stateAndRef = resultApp.tx.outRef<LetterOfCreditApplicationState>(0)
-        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
+        val invoicestateAndRef = resultApp.tx.outRef<InvoiceState>(0)
+        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(stateAndRef.ref, invoicestateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
 
@@ -107,7 +108,8 @@ class PaymentFlowTests {
 
         // Run approval flow to create LetterOfCreditState from application
         val stateAndRef = resultApp.tx.outRef<LetterOfCreditApplicationState>(0)
-        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
+        val invoicestateAndRef = resultApp.tx.outRef<InvoiceState>(0)
+        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve( stateAndRef.ref, invoicestateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
 
@@ -144,7 +146,8 @@ class PaymentFlowTests {
 
         // Run approval flow to create LetterOfCreditState from application
         val stateAndRef = resultApp.tx.outRef<LetterOfCreditApplicationState>(0)
-        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(reference = stateAndRef.ref)).toCompletableFuture()
+        val invoicestateAndRef = resultApp.tx.outRef<InvoiceState>(0)
+        val futureApproval = issuerNode.startFlow(LOCApprovalFlow.Approve(stateAndRef.ref, invoicestateAndRef.ref)).toCompletableFuture()
         net.runNetwork()
         futureApproval.getOrThrow()
 

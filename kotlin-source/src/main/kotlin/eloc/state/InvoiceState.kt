@@ -14,11 +14,10 @@ data class InvoiceState(
         val owner: Party,
         val buyer: Party,
         val assigned: Boolean,
-        val props: InvoiceProperties) : LinearState {
-
-    override val linearId = UniqueIdentifier()
-
-    override val participants = listOf(owner, buyer)
+        val isConsumeable: Boolean,
+        val props: InvoiceProperties,
+        override val participants:List<Party> = listOf(owner, buyer)) : LinearState {
+        override val linearId = UniqueIdentifier()
 }
 
 @CordaSerializable

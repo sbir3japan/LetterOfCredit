@@ -1,5 +1,6 @@
 package eloc.contract
 
+import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
 import eloc.state.LetterOfCreditState
 import net.corda.core.contracts.*
@@ -27,10 +28,12 @@ open class LetterOfCreditContract : Contract {
         when (command.value) {
             is Commands.Issuance -> {
                 requireThat {
+                    val invoice = tx.inputsOfType<InvoiceState>().single()
                     val output = tx.outputsOfType<LetterOfCreditState>().single()
                     // confirms the LetterOfCreditApplication is included in the transaction
                     tx.inputsOfType<LetterOfCreditApplicationState>().single()
                     requireThat {
+                        "input invoice should not be consumable" using (invoice.isConsumeable == false)
                         //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
                         "the LOC must be Issued" using (output.issued == true)
                         "Demand Presentation must not be preformed successfully" using (output.beneficiaryPaid == false)

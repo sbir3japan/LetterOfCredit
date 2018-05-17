@@ -4,10 +4,7 @@ import eloc.LetterOfCreditDataStructures.CreditType
 import eloc.LetterOfCreditDataStructures.Location
 import eloc.LetterOfCreditDataStructures.Port
 import eloc.LetterOfCreditDataStructures.PricedGood
-import eloc.state.LetterOfCreditApplicationProperties
-import eloc.state.LetterOfCreditApplicationState
-import eloc.state.LetterOfCreditApplicationStatus
-import eloc.state.LetterOfCreditState
+import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
@@ -54,10 +51,12 @@ class LOCApprovalFlowTester {
         val locApp = issuerNode.transaction {
             issuerNode.services.vaultService.queryBy<LetterOfCreditApplicationState>().states
         }
-
+        val invoice_state = issuerNode.transaction {
+            issuerNode.services.vaultService.queryBy<InvoiceState>().states
+        }
         assert(locApp.count() > 0)
 
-        val approvalFuture = issuerNode.startFlow(LOCApprovalFlow.Approve(locApp.first().ref)).toCompletableFuture()
+        val approvalFuture = issuerNode.startFlow(LOCApprovalFlow.Approve(locApp.first().ref, invoice_state.first().ref)).toCompletableFuture()
         net.runNetwork()
         approvalFuture.getOrThrow()
 

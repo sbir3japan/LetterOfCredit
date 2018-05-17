@@ -23,7 +23,6 @@ class LetterOfCreditApplicationContract : Contract {
                 val output = tx.outputsOfType<LetterOfCreditApplicationState>().single()
                 requireThat {
                     "the owner must be the applicant" using (output.owner == output.props.applicant)
-                    "there is no input state" using tx.inputStates.isEmpty()
                     "the output status must be pending issuer review" using (output.status == LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW)
                 }
             }

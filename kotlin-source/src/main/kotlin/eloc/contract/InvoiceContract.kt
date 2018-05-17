@@ -29,6 +29,8 @@ class InvoiceContract : Contract {
 
     interface Commands : CommandData {
         class Issue : TypeOnlyCommandData(), Commands
+        class LockInvoice : TypeOnlyCommandData(), Commands
+        class Extinguish : TypeOnlyCommandData(), Commands
     }
 
     /** The Invoice contract needs to handle three commands
@@ -45,6 +47,7 @@ class InvoiceContract : Contract {
         val time = Instant.now()
 
         when (command.value) {
+
             is Commands.Issue -> {
                 if (tx.outputs.size != 1) {
                     throw IllegalArgumentException("Failed requirement: during issuance of the invoice, only " +
@@ -63,6 +66,24 @@ class InvoiceContract : Contract {
                             > time)
                     "there must be goods associated with the invoice" using (issueOutput.props.goods.isNotEmpty())
                 }
+            }
+
+            is Commands.LockInvoice -> {
+                if (tx.outputs.size != 2) {
+                    throw IllegalArgumentException("Failed requirement: during Loc Request")
+                }
+                val invoiceInput: InvoiceState = tx.inputsOfType<InvoiceState>().single()
+                val invoiceOutput: InvoiceState = tx.outputsOfType<InvoiceState>().single()
+
+                requireThat {
+                    "input invoice must be marked as consumable" using (invoiceInput.isConsumeable == true)
+                    "invoice in the output should be marked as non-consumable" using (invoiceOutput.isConsumeable == false)
+
+                }
+            }
+
+            is Commands.Extinguish -> {
+
             }
         }
     }

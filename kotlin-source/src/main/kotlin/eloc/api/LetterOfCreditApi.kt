@@ -255,7 +255,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val buyer = rpcOps.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
                 ?: return Response.status(BAD_REQUEST).entity("${invoice.buyerName} not found.").build()
 
-        val state = InvoiceState(me, buyer, true, invoice.toInvoiceProperties())
+        val state = InvoiceState(me, buyer, true, true, invoice.toInvoiceProperties())
 
         val flowFuture = rpcOps.startFlow(InvoiceFlow::UploadAndSend, buyer, state).returnValue
         val result = try {
@@ -301,7 +301,11 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
             it.ref.txhash.toString() == ref
         }
 
-        val flowFuture = rpcOps.startFlow(LOCApprovalFlow::Approve, stateAndRef.ref).returnValue
+        val invoicestateAndRef = rpcOps.vaultQueryBy<InvoiceState>().states.first {
+            it.ref.txhash.toString() == ref
+        }
+
+        val flowFuture = rpcOps.startFlow(LOCApprovalFlow::Approve, stateAndRef.ref,invoicestateAndRef.ref).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
