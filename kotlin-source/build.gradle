@@ -1,3 +1,7 @@
+plugins {
+    id "us.kirchmeier.capsule" version "1.0.2"
+}
+
 repositories {
     mavenLocal()
     jcenter()
@@ -23,18 +27,6 @@ sourceSets {
             srcDir "../config/test"
         }
     }
-    integrationTest {
-        kotlin {
-            compileClasspath += main.output + test.output
-            runtimeClasspath += main.output + test.output
-            srcDir file('src/integrationTest/kotlin')
-        }
-    }
-}
-
-configurations {
-    integrationTestCompile.extendsFrom testCompile
-    integrationTestRuntime.extendsFrom testRuntime
 }
 
 dependencies {
@@ -155,4 +147,30 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
 task runNodes(type: JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     main = 'eloc.MainKt'
+}
+
+task testJar(type: Jar) {
+    classifier = 'tests'
+    from sourceSets.test.output
+}
+
+task buildExecutableJar(type: FatCapsule, dependsOn: [jar, testJar]) {
+    applicationClass 'eloc.MainKt'
+    archiveName "eloc-demo.jar"
+    applicationSource = files(
+            configurations.runtime,
+            configurations.testRuntime,
+            testJar.outputs,
+            jar
+    )
+
+    capsuleManifest {
+        def quasarExcludeExpression = "x(antlr**;bftsmart**;ch**;co.paralleluniverse**;com.codahale**;com.esotericsoftware**;com.fasterxml**;com.google**;com.ibm**;com.intellij**;com.jcabi**;com.nhaarman**;com.opengamma**;com.typesafe**;com.zaxxer**;de.javakaffee**;groovy**;groovyjarjarantlr**;groovyjarjarasm**;io.atomix**;io.github**;io.netty**;jdk**;joptsimple**;junit**;kotlin**;net.bytebuddy**;net.i2p**;org.apache**;org.assertj**;org.bouncycastle**;org.codehaus**;org.crsh**;org.dom4j**;org.fusesource**;org.h2**;org.hamcrest**;org.hibernate**;org.jboss**;org.jcp**;org.joda**;org.junit**;org.mockito**;org.objectweb**;org.objenesis**;org.slf4j**;org.w3c**;org.xml**;org.yaml**;reflectasm**;rx**;org.jolokia**)"
+        javaAgents = ["quasar-core-${quasar_version}-jdk8.jar=${quasarExcludeExpression}"]
+        minJavaVersion = '1.8.0'
+        jvmArgs = ['-Xmx512m', '-XX:+UseG1GC']
+    }
+
+    // Makes the JAR executable by clicking it, but it starts in the background :(
+    // reallyExecutable
 }
