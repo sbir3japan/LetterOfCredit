@@ -37,11 +37,11 @@ fun main(args: Array<String>) {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
                 val nodeNames = listOf(
-                        CordaX500Name("Issuing Bank of London", "London", "GB"),
-                        CordaX500Name("Advising Bank of New York", "New York", "US"),
-                        CordaX500Name("Visual Electronica Importers", "Iowa", "US"),
-                        CordaX500Name("Startek Technologies", "Shenzhen", "CH"),
-                        CordaX500Name("Central Bank of Corda", "New York", "US"))
+                        CordaX500Name("First Bank of London", "London", "GB"),
+                        CordaX500Name("Shenzhen State Bank", "Shenzhen", "CH"),
+                        CordaX500Name("Analog Importers", "London", "GB"),
+                        CordaX500Name("Lok Ma Exporters", "Shenzhen", "CH"),
+                        CordaX500Name("Federal Reserve", "New York", "US"))
 
                 nodeNames.forEach { name ->
                     val node = startNode(providedName = name, rpcUsers = rpcUserList).getOrThrow()
