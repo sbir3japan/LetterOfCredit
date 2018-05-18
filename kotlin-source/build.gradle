@@ -73,7 +73,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Issuing Bank of London,L=London,C=GB"
+        name "O=First Bank of London,L=London,C=GB"
         p2pPort 10005
         rpcSettings {
             address("localhost:10006")
@@ -87,7 +87,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Advising Bank of New York,L=New York,C=US"
+        name "O=Shenzhen State Bank,L=Shenzhen,C=CH"
         p2pPort 10008
         rpcSettings {
             address("localhost:10009")
@@ -101,7 +101,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Visual Electronica Importers,L=Iowa,C=US"
+        name "O=Analog Importers,L=London,C=GB"
         p2pPort 10011
         rpcSettings {
             address("localhost:10012")
@@ -115,7 +115,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Startek Technologies,L=Shenzhen,C=CH"
+        name "O=Lok Ma Exporters,L=Shenzhen,C=CH"
         p2pPort 10014
         rpcSettings {
             address("localhost:10015")
@@ -129,7 +129,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Central Bank of Corda,L=New York,C=US"
+        name "O=Federal Reserve,L=New York,C=US"
         p2pPort 10017
         rpcSettings {
             address("localhost:10018")
