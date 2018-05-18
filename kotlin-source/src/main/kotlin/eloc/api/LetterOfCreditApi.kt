@@ -430,12 +430,19 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
      */
     private fun mapStatesToHashesAndSigs(stateAndRefs: List<StateAndRef<ContractState>>): Response {
         val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
+        val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
 
         val response = stateAndRefs.map { stateAndRef ->
+            val state = stateAndRef.state.data
+
             val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
                     ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
+            val txId = tx.id.toString()
 
-            Triple(tx.id.toString(), tx.sigs.map { it.by.toStringShort() }, stateAndRef.state.data)
+            val sigs = tx.sigs.map { sig -> sig.bytes }
+            val signers = tx.sigs.map { sig -> parties.find { party -> party.owningKey == sig.by } }
+
+            Quadruple(txId, sigs, state, signers)
         }
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
@@ -448,13 +455,27 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     private inline fun <reified T : ContractState> getStateOfTypeWithHashAndSigs(ref: String, filter: (StateAndRef<T>) -> Boolean): Response {
         val states = rpcOps.vaultQueryBy<T>().states
         val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
+        val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
 
         val stateAndRef = states.find(filter)
                 ?: return Response.status(BAD_REQUEST).entity("State for ref $ref not found.").build()
+        // TODO: Refactor out shared functionality below.
+        val state = stateAndRef.state.data
+
         val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
                 ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
-        val response = Triple(tx.id.toString(), tx.sigs.map { it.by.toStringShort() }, stateAndRef.state.data)
+        val txId = tx.id.toString()
+
+        val sigs = tx.sigs.map { sig -> sig.bytes }
+        val signers = tx.sigs.map { sig -> parties.find { party -> party.owningKey == sig.by } }
+
+        val response = Quadruple(txId, sigs, state, signers)
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
     }
+}
+
+data class Quadruple<out A, out B, out C, out D>(
+        val first: A, val second: B, val third: C, val fourth: D) {
+    public override fun toString(): String = "($first, $second, $third, $fourth)"
 }
