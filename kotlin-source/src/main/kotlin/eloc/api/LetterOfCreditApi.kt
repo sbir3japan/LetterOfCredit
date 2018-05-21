@@ -424,7 +424,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
 
         val stateAndRef = states.find(filter)
-                ?: return Response.status(BAD_REQUEST).entity("State for ref $ref not found.").build()
+                ?: return Response.status(BAD_REQUEST).entity("State with ID $ref not found.").build()
         // TODO: Refactor out shared functionality below.
         val state = stateAndRef.state.data
 

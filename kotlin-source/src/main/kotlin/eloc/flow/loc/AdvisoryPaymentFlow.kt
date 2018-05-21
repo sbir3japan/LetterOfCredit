@@ -44,14 +44,14 @@ object AdvisoryPaymentFlow {
             val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter {
                 it.state.data.status != LetterOfCreditStatus.TERMINATED && it.state.data.props.letterOfCreditID == locId
             }
-            if (locStates.isEmpty()) throw Exception("Letter of credit state with ID $locId not found.")
+            if (locStates.isEmpty()) throw Exception("Advising bank could not be paid. Letter of credit state with ID $locId not found.")
             if (locStates.size > 1) throw Exception("Several letter of credit states with ID $locId found.")
             val locState = locStates.single()
 
             val bolStates = serviceHub.vaultService.queryBy<BillOfLadingState>().states.filter {
                 it.state.data.props.billOfLadingID == locId
             }
-            if (bolStates.isEmpty()) throw Exception("Bill of lading state with ID $locId not found.")
+            if (bolStates.isEmpty()) throw Exception("Advising bank could not be paid. Bill of lading has not been created.")
             if (bolStates.size > 1) throw Exception("Several bill of lading states with ID $locId found.")
             val bolState = bolStates.single()
 

@@ -42,13 +42,13 @@ object ShippingFlow {
         override fun call() : SignedTransaction {
             // #1 Pull state from vault and reference to payee
             val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter { it.state.data.status == LetterOfCreditStatus.ISSUED && it.state.data.props.letterOfCreditID == locId }
-            if (locStates.isEmpty()) throw Exception("Unshipped letter of credit state with ID $locId not found.")
+            if (locStates.isEmpty()) throw Exception("Order could not be shipped. Letter of credit state with ID $locId not found.")
             if (locStates.size > 1) throw Exception("Several unshipped letter of credit states with ID $locId found.")
             val locState = locStates.single()
 
             // #2 Check that bill of lading has been created, this will throw an error if exactly one of each doesn't exist.
             val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count { it.state.data.props.billOfLadingID == locId }
-            if (bolStateCount == 0) throw Exception("Bill of lading state with ID $locId not found.")
+            if (bolStateCount == 0) throw Exception("Order could not be shipped. Bill of lading has not been created.")
             if (bolStateCount > 1) throw Exception("Several bill of lading states with ID $locId found.")
 
             // #3 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
