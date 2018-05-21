@@ -35,7 +35,7 @@ object BillOfLadingFlow {
             val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count {
                 it.state.data.props.billOfLadingID == billOfLading.props.billOfLadingID
             }
-            if (bolStateCount != 0) throw Exception("Bill of lading state with ID ${billOfLading.props.billOfLadingID} already exists.")
+            if (bolStateCount != 0) throw Exception("Bill of lading has already been added.")
 
             progressTracker.currentStep = ISSUING_INVOICE
             // Step 2. Get a reference to the notary service on our network and our key pair.

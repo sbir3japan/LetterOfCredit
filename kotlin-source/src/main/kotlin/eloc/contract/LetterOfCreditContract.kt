@@ -33,8 +33,8 @@ open class LetterOfCreditContract : Contract {
                     tx.inputsOfType<LetterOfCreditApplicationState>().single()
                     requireThat {
                         //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
-                        "the LOC must be Issued" using (output.status == LetterOfCreditStatus.ISSUED)
-                        "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
+                        "The LOC must be Issued" using (output.status == LetterOfCreditStatus.ISSUED)
+                        "The period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                     }
                 }
             }
@@ -42,8 +42,8 @@ open class LetterOfCreditContract : Contract {
             is Commands.ConfirmShipment -> {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
-                    "the transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
-                    "the LOC must be Issued" using (output.status == LetterOfCreditStatus.SHIPPED)
+                    "The transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
+                    "The LOC must be Issued" using (output.status == LetterOfCreditStatus.SHIPPED)
                 }
             }
 
@@ -51,10 +51,10 @@ open class LetterOfCreditContract : Contract {
                 val input = tx.inputsOfType<LetterOfCreditState>().single()
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
-                    "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.status == LetterOfCreditStatus.SHIPPED)
-                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.BENEFICIARY_PAID)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
+                    "Cash is part of the output state." using (tx.outputsOfType<Cash.State>().any())
+                    "Seller must not already have been paid." using (input.status == LetterOfCreditStatus.SHIPPED)
+                    "Transaction must update ledger to mark seller as paid." using (output.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+                    "The period of presentation must be a positive number." using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }
 
@@ -62,10 +62,10 @@ open class LetterOfCreditContract : Contract {
                 val input = tx.inputsOfType<LetterOfCreditState>().single()
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
-                    "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Advising bank has not already been paid" using (input.status == LetterOfCreditStatus.BENEFICIARY_PAID)
-                    "Advising bank is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ADVISORY_PAID)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
+                    "Cash is part of the output state." using (tx.outputsOfType<Cash.State>().any())
+                    "Advising bank must not already have been paid." using (input.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+                    "Advising bank is marked as being paid in output state." using (output.status == LetterOfCreditStatus.ADVISORY_PAID)
+                    "The period of presentation must be a positive number." using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }
 
@@ -74,9 +74,9 @@ open class LetterOfCreditContract : Contract {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Issuing bank has not already been paid" using (input.status == LetterOfCreditStatus.ADVISORY_PAID)
+                    "Issuing bank must not already have been paid" using (input.status == LetterOfCreditStatus.ADVISORY_PAID)
                     "Issuing bank is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ISSUER_PAID)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
+                    "The period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }
         }

@@ -41,10 +41,11 @@ object ShippingFlow {
         @Suspendable
         override fun call() : SignedTransaction {
             // #1 Pull state from vault and reference to payee
-            val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter { it.state.data.status == LetterOfCreditStatus.ISSUED && it.state.data.props.letterOfCreditID == locId }
-            if (locStates.isEmpty()) throw Exception("Order could not be shipped. Letter of credit state with ID $locId not found.")
-            if (locStates.size > 1) throw Exception("Several unshipped letter of credit states with ID $locId found.")
-            val locState = locStates.single()
+            val locStateAndRefs = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter { it.state.data.props.letterOfCreditID == locId }
+            if (locStateAndRefs.isEmpty()) throw Exception("Order could not be shipped. Letter of credit state with ID $locId not found.")
+            if (locStateAndRefs.size > 1) throw Exception("Several unshipped letter of credit states with ID $locId found.")
+            val locStateAndRef = locStateAndRefs.single()
+            if (locStateAndRef.state.data.status != LetterOfCreditStatus.ISSUED) throw Exception("Order could not be shipped. It has already been shipped or terminated.")
 
             // #2 Check that bill of lading has been created, this will throw an error if exactly one of each doesn't exist.
             val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count { it.state.data.props.billOfLadingID == locId }
@@ -56,14 +57,14 @@ object ShippingFlow {
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
             // #4 Create output state where the status is marked as shipped
-            val outputState = locState.state.data.shipped()
+            val outputState = locStateAndRef.state.data.shipped()
 
             // #5 Create builder and command
             val builder = TransactionBuilder(notary = notary)
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // #6 Add other states
-            builder.addInputState(locState)
+            builder.addInputState(locStateAndRef)
             builder.addOutputState(outputState, LetterOfCreditContract.CONTRACT_ID)
             builder.addCommand(LetterOfCreditContract.Commands.ConfirmShipment(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
