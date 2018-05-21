@@ -3,10 +3,7 @@ package eloc.flow
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.LetterOfCreditApplicationContract
 import eloc.contract.LetterOfCreditContract
-import eloc.state.LetterOfCreditApplicationState
-import eloc.state.LetterOfCreditApplicationStatus
-import eloc.state.LetterOfCreditProperties
-import eloc.state.LetterOfCreditState
+import eloc.state.*
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
 import net.corda.core.flows.*
@@ -45,7 +42,7 @@ object LOCApprovalFlow {
             val LOCProps = LetterOfCreditProperties(applicationProps, LocalDate.now())
 
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
-            val loc = LetterOfCreditState(beneficiaryPaid = false, advisoryPaid = false, issuerPaid = false, issued = true, terminated = false, shipped = false, props = LOCProps)
+            val loc = LetterOfCreditState(status = LetterOfCreditStatus.ISSUED, props = LOCProps)
 
             val builder = TransactionBuilder(notary = notary)
             val appStateAndRef = StateAndRef(state = applicationTxState, ref = reference)

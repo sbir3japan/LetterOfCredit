@@ -126,7 +126,6 @@ data class LocApplicationData(
 data class PackingListData(
         val issueDate: String,
         val orderNumber: String,
-        val sellersOrderNumber: String,
 
         val transportMethod: String,
         val nameOfVessel: String,
@@ -155,7 +154,6 @@ data class PackingListData(
     fun toPackingListProperties() = PackingListProperties(
             issueDate = LocalDate.parse(issueDate.substringBefore('T')),
             orderNumber = orderNumber,
-            sellersOrderNumber = sellersOrderNumber,
             transportMethod = transportMethod,
             nameOfVessel = nameOfVessel,
             billOfLadingNumber = billOfLadingNumber,

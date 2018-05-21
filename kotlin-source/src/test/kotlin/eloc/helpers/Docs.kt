@@ -52,7 +52,6 @@ var invoiceProperties = InvoiceProperties(
 val plProperties = PackingListProperties(
         issueDate = LocalDate.now(),
         orderNumber = "123",
-        sellersOrderNumber = "123",
         transportMethod = "Ship",
         nameOfVessel = "SurfRider",
         billOfLadingNumber = "123",

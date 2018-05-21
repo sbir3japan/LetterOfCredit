@@ -2,6 +2,7 @@ package eloc.contract
 
 import eloc.state.LetterOfCreditApplicationState
 import eloc.state.LetterOfCreditState
+import eloc.state.LetterOfCreditStatus
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 import net.corda.finance.contracts.asset.Cash
@@ -32,9 +33,7 @@ open class LetterOfCreditContract : Contract {
                     tx.inputsOfType<LetterOfCreditApplicationState>().single()
                     requireThat {
                         //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
-                        "the LOC must be Issued" using (output.issued == true)
-                        "Demand Presentation must not be preformed successfully" using (output.beneficiaryPaid == false)
-                        "LOC must not be terminated" using (output.terminated == false)
+                        "the LOC must be Issued" using (output.status == LetterOfCreditStatus.ISSUED)
                         "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                     }
                 }
@@ -44,7 +43,7 @@ open class LetterOfCreditContract : Contract {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "the transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
-                    "the LOC must be Issued" using (output.issued == true)
+                    "the LOC must be Issued" using (output.status == LetterOfCreditStatus.SHIPPED)
                 }
             }
 
@@ -53,9 +52,8 @@ open class LetterOfCreditContract : Contract {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.advisoryPaid == false)
-                    "Beneficiary is marked as being paid in output state" using (output.advisoryPaid == true)
-                    "LOC must not be terminated" using (output.terminated == false)
+                    "Beneficiary has not already been paid" using (input.status == LetterOfCreditStatus.SHIPPED)
+                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ADVISORY_PAID)
                     "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }
@@ -65,9 +63,8 @@ open class LetterOfCreditContract : Contract {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.issuerPaid == false)
-                    "Beneficiary is marked as being paid in output state" using (output.issuerPaid == true)
-                    "LOC must not be terminated" using (output.terminated == false)
+                    "Beneficiary has not already been paid" using (input.status == LetterOfCreditStatus.ADVISORY_PAID)
+                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ISSUER_PAID)
                     "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }
@@ -77,9 +74,8 @@ open class LetterOfCreditContract : Contract {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.beneficiaryPaid == false)
-                    "Beneficiary is marked as being paid in output state" using (output.beneficiaryPaid == true)
-                    "LOC must not be terminated" using (output.terminated == false)
+                    "Beneficiary has not already been paid" using (input.status == LetterOfCreditStatus.ISSUER_PAID)
+                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.BENEFICIARY_PAID)
                     "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }

@@ -24,7 +24,6 @@ data class PackingListState(
 data class PackingListProperties (
         val issueDate: LocalDate,
         val orderNumber: String,
-        val sellersOrderNumber: String,
         val transportMethod : String,
         val nameOfVessel: String,
         val billOfLadingNumber: String,

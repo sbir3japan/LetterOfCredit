@@ -94,8 +94,8 @@ class PaymentFlowTests {
             advisingBankNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
-        Assert.assertTrue(issuerState.state.data.beneficiaryPaid)
-        Assert.assertTrue(advisingState.state.data.beneficiaryPaid)
+        Assert.assertTrue(issuerState.state.data.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+        Assert.assertTrue(advisingState.state.data.status == LetterOfCreditStatus.BENEFICIARY_PAID)
     }
 
     @Test
@@ -131,8 +131,8 @@ class PaymentFlowTests {
             advisingBankNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
-        Assert.assertTrue(issuerState.state.data.advisoryPaid)
-        Assert.assertTrue(advisingState.state.data.advisoryPaid)
+        Assert.assertTrue(issuerState.state.data.status == LetterOfCreditStatus.ADVISORY_PAID)
+        Assert.assertTrue(advisingState.state.data.status == LetterOfCreditStatus.ADVISORY_PAID)
     }
 
     @Test
@@ -169,8 +169,8 @@ class PaymentFlowTests {
         }
 
 
-        Assert.assertTrue(issuerState.state.data.issuerPaid)
-        Assert.assertTrue(advisingState.state.data.issuerPaid)
+        Assert.assertTrue(issuerState.state.data.status == LetterOfCreditStatus.ISSUER_PAID)
+        Assert.assertTrue(advisingState.state.data.status == LetterOfCreditStatus.ISSUER_PAID)
     }
 
     private fun locApplicationState() : LetterOfCreditApplicationState {

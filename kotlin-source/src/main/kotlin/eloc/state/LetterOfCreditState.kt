@@ -15,21 +15,16 @@ import java.time.Period
 import java.util.*
 
 data class LetterOfCreditState(
-        val beneficiaryPaid: Boolean,
-        val advisoryPaid: Boolean,
-        val issuerPaid: Boolean,
-        val issued: Boolean,
-        val shipped: Boolean,
-        val terminated: Boolean,
+        val status: LetterOfCreditStatus,
         val props: LetterOfCreditProperties) : LinearState {
 
     override val linearId = UniqueIdentifier(props.letterOfCreditID)
     override val participants = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
 
-    fun beneficiaryPaid() = copy(beneficiaryPaid = true)
-    fun issuerPaid() = copy(issuerPaid = true)
-    fun advisoryPaid() = copy(advisoryPaid = true)
-    fun shipped() = copy(shipped = true)
+    fun shipped() = copy(status = LetterOfCreditStatus.SHIPPED)
+    fun advisoryPaid() = copy(status = LetterOfCreditStatus.ADVISORY_PAID)
+    fun issuerPaid() = copy(status = LetterOfCreditStatus.ISSUER_PAID)
+    fun beneficiaryPaid() = copy(status = LetterOfCreditStatus.BENEFICIARY_PAID)
 }
 
 @CordaSerializable
@@ -71,4 +66,14 @@ data class LetterOfCreditProperties (
             applicant = applicationProps.applicant,
             advisingBank = applicationProps.advisingBank
     )
+}
+
+@CordaSerializable
+enum class LetterOfCreditStatus {
+    ISSUED,
+    SHIPPED,
+    ADVISORY_PAID,
+    ISSUER_PAID,
+    BENEFICIARY_PAID,
+    TERMINATED
 }

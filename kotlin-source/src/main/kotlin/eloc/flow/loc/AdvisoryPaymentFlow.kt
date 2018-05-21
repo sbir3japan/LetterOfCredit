@@ -5,6 +5,7 @@ import eloc.contract.BillOfLadingContract
 import eloc.contract.LetterOfCreditContract
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
+import eloc.state.LetterOfCreditStatus
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
@@ -41,7 +42,7 @@ object AdvisoryPaymentFlow {
         override fun call() : SignedTransaction {
             // #1 Pull state from vault and reference to payee
             val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter {
-                !it.state.data.terminated && it.state.data.props.letterOfCreditID == locId
+                it.state.data.status != LetterOfCreditStatus.TERMINATED && it.state.data.props.letterOfCreditID == locId
             }
             if (locStates.isEmpty()) throw Exception("Letter of credit state with ID $locId not found.")
             if (locStates.size > 1) throw Exception("Several letter of credit states with ID $locId found.")
