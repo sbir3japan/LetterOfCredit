@@ -4,7 +4,6 @@ import eloc.flow.LOCApplicationFlow.Apply
 import eloc.flow.LOCApprovalFlow
 import eloc.flow.documents.BillOfLadingFlow
 import eloc.flow.documents.InvoiceFlow
-import eloc.flow.documents.PackingListFlow
 import eloc.flow.loc.AdvisoryPaymentFlow
 import eloc.flow.loc.IssuerPaymentFlow
 import eloc.flow.loc.SellerPaymentFlow
@@ -13,7 +12,6 @@ import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
-import net.corda.core.crypto.toStringShort
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
@@ -180,16 +178,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     )
 
     /**
-     * Fetches packing list state that matches ref from the node's vault.
-     */
-    @GET
-    @Path("get-packing-list")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getPackingList(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<PackingListState> -> stateAndRef.state.data.props.orderNumber == ref }
-    )
-
-    /**
      * Fetches events concerning bill of lading state that matches ref.
      */
     @GET
@@ -324,28 +312,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
 
         val flowFuture = rpcOps.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue
-        val result = try {
-            flowFuture.getOrThrow()
-        } catch (e: Exception) {
-            return Response.status(BAD_REQUEST).entity(e.message).build()
-        }
-
-        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
-    }
-
-    @POST
-    @Path("submit-pl")
-    fun submitPackingList(packingList: PackingListData): Response {
-        val buyer = rpcOps.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${packingList.buyerName} not found.").build()
-        val advisingBank = rpcOps.partiesFromName(packingList.advisingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${packingList.advisingBank} not found.").build()
-        val issuingBank = rpcOps.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${packingList.issuingBank} not found.").build()
-
-        val state = PackingListState(buyer, me, advisingBank, issuingBank, packingList.toPackingListProperties())
-
-        val flowFuture = rpcOps.startFlow(PackingListFlow::UploadAndSend, state).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {

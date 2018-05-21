@@ -5,7 +5,6 @@ import eloc.contract.LetterOfCreditContract
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
-import eloc.state.PackingListState
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
@@ -47,13 +46,10 @@ object ShippingFlow {
             if (locStates.size > 1) throw Exception("Several unshipped letter of credit states with ID $locId found.")
             val locState = locStates.single()
 
-            // #2 Check that bill of lading and packing list have been created, this will throw an error if exactly one of each doesn't exist.
+            // #2 Check that bill of lading has been created, this will throw an error if exactly one of each doesn't exist.
             val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count { it.state.data.props.billOfLadingID == locId }
             if (bolStateCount == 0) throw Exception("Bill of lading state with ID $locId not found.")
             if (bolStateCount > 1) throw Exception("Several bill of lading states with ID $locId found.")
-            val plStateCount = serviceHub.vaultService.queryBy<PackingListState>().states.count { it.state.data.props.billOfLadingNumber == locId }
-            if (plStateCount == 0) throw Exception("Packing list state with ID $locId not found.")
-            if (plStateCount > 1) throw Exception("Several packing list states with ID $locId found.")
 
             // #3 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION

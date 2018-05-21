@@ -41,7 +41,6 @@ object IssuerPaymentFlow {
         @Suspendable
         override fun call(): SignedTransaction {
             // #1 Pull state from vault and reference to payee
-            progressTracker.currentStep = SellerPaymentFlow.MakePayment.Companion.GATHERING_STATES
             val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter {
                 it.state.data.status != LetterOfCreditStatus.TERMINATED && it.state.data.props.letterOfCreditID == locId
             }

@@ -22,9 +22,9 @@ data class LetterOfCreditState(
     override val participants = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
 
     fun shipped() = copy(status = LetterOfCreditStatus.SHIPPED)
+    fun beneficiaryPaid() = copy(status = LetterOfCreditStatus.BENEFICIARY_PAID)
     fun advisoryPaid() = copy(status = LetterOfCreditStatus.ADVISORY_PAID)
     fun issuerPaid() = copy(status = LetterOfCreditStatus.ISSUER_PAID)
-    fun beneficiaryPaid() = copy(status = LetterOfCreditStatus.BENEFICIARY_PAID)
 }
 
 @CordaSerializable
@@ -72,8 +72,8 @@ data class LetterOfCreditProperties (
 enum class LetterOfCreditStatus {
     ISSUED,
     SHIPPED,
+    BENEFICIARY_PAID,
     ADVISORY_PAID,
     ISSUER_PAID,
-    BENEFICIARY_PAID,
     TERMINATED
 }

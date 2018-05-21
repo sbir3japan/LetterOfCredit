@@ -16,9 +16,9 @@ open class LetterOfCreditContract : Contract {
     interface Commands : CommandData {
         class Issuance : TypeOnlyCommandData(), Commands
         class ConfirmShipment : TypeOnlyCommandData(), Commands
+        class AddPaymentToBeneficiary : TypeOnlyCommandData(), Commands
         class AddPaymentToAdvisory :TypeOnlyCommandData(), Commands
         class AddPaymentToIssuer :TypeOnlyCommandData(), Commands
-        class AddPaymentToBeneficiary : TypeOnlyCommandData(), Commands
     }
 
     override fun verify(tx: LedgerTransaction) {
@@ -47,13 +47,24 @@ open class LetterOfCreditContract : Contract {
                 }
             }
 
-            is Commands.AddPaymentToAdvisory -> {
+            is Commands.AddPaymentToBeneficiary -> {
                 val input = tx.inputsOfType<LetterOfCreditState>().single()
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
                     "Beneficiary has not already been paid" using (input.status == LetterOfCreditStatus.SHIPPED)
-                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ADVISORY_PAID)
+                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
+                }
+            }
+
+            is Commands.AddPaymentToAdvisory -> {
+                val input = tx.inputsOfType<LetterOfCreditState>().single()
+                val output = tx.outputsOfType<LetterOfCreditState>().single()
+                requireThat {
+                    "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
+                    "Advising bank has not already been paid" using (input.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+                    "Advising bank is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ADVISORY_PAID)
                     "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }
@@ -63,19 +74,8 @@ open class LetterOfCreditContract : Contract {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
                 requireThat {
                     "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.status == LetterOfCreditStatus.ADVISORY_PAID)
-                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ISSUER_PAID)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
-                }
-            }
-
-            is Commands.AddPaymentToBeneficiary -> {
-                val input = tx.inputsOfType<LetterOfCreditState>().single()
-                val output = tx.outputsOfType<LetterOfCreditState>().single()
-                requireThat {
-                    "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.status == LetterOfCreditStatus.ISSUER_PAID)
-                    "Beneficiary is marked as being paid in output state" using (output.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+                    "Issuing bank has not already been paid" using (input.status == LetterOfCreditStatus.ADVISORY_PAID)
+                    "Issuing bank is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ISSUER_PAID)
                     "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }

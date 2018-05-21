@@ -1,6 +1,5 @@
 package eloc.helpers
 
-import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.CordaX500Name
 import net.corda.testing.core.TestIdentity
 
