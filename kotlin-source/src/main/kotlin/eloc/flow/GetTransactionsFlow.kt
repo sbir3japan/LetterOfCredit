@@ -37,12 +37,12 @@ class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
 
     private fun mapToStateSubclass(state: ContractState) = when (state) {
         is InvoiceState -> "InvoiceState"
-        is LetterOfCreditApplicationState -> "LetterOfCreditApplicationState"
-        is LetterOfCreditState -> "LetterOfCreditState"
+        is LetterOfCreditApplicationState -> "LetterOfCreditApplicationState (status = ${state.status})"
+        is LetterOfCreditState -> "LetterOfCreditState (status = ${state.status})"
         is BillOfLadingState -> "BillOfLadingState"
         else -> "ContractState"
     }
 }
 
 @CordaSerializable
-data class TransactionSummary(val hash: SecureHash, val inputs: List<String>, val output: List<String>)
+data class TransactionSummary(val hash: SecureHash, val inputs: List<String>, val outputs: List<String>)
