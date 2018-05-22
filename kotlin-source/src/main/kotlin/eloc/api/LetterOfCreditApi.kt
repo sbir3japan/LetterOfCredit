@@ -1,5 +1,6 @@
 package eloc.api
 
+import eloc.flow.GetTransactionsFlow
 import eloc.flow.LOCApplicationFlow.Apply
 import eloc.flow.LOCApprovalFlow
 import eloc.flow.documents.BillOfLadingFlow
@@ -371,6 +372,22 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         }
 
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
+    }
+
+    /**
+     * Fetches all transactions and returns them as a list of <ID, input types, output types> triples.
+     */
+    @GET
+    @Path("transactions")
+    fun transactions(): Response {
+        val flowFuture = rpcOps.startFlow(::GetTransactionsFlow).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
+
+        return Response.ok(result, MediaType.APPLICATION_JSON).build()
     }
 
     /**
