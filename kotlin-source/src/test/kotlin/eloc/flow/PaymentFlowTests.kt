@@ -198,7 +198,7 @@ class PaymentFlowTests {
                 invoiceRef = StateRef(SecureHash.Companion.randomSHA256(),0)
         )
 
-        return LetterOfCreditApplicationState(properties.applicant, properties.issuer, LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW, properties, null)
+        return LetterOfCreditApplicationState(properties.applicant, properties.issuer, LetterOfCreditApplicationStatus.IN_REVIEW, properties, null)
     }
 
     private fun billOfLadingState() : BillOfLadingState {

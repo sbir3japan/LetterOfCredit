@@ -31,18 +31,19 @@ class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
         return ledgerTransactions.map { tx ->
             val inputStateTypes = tx.inputStates.map { inputState -> mapToStateSubclass(inputState) }
             val outputStateTypes = tx.outputStates.map { outputState -> mapToStateSubclass(outputState) }
-            TransactionSummary(tx.id, inputStateTypes, outputStateTypes)
+            val signers = tx.commands.flatMap { it.signingParties }.map { it.name.organisation }
+            TransactionSummary(tx.id, inputStateTypes, outputStateTypes, signers)
         }
     }
 
     private fun mapToStateSubclass(state: ContractState) = when (state) {
-        is InvoiceState -> "InvoiceState"
-        is LetterOfCreditApplicationState -> "LetterOfCreditApplicationState (status = ${state.status})"
-        is LetterOfCreditState -> "LetterOfCreditState (status = ${state.status})"
-        is BillOfLadingState -> "BillOfLadingState"
+        is InvoiceState -> "Invoice"
+        is LetterOfCreditApplicationState -> "Letter Of Credit Application (status = ${state.status})"
+        is LetterOfCreditState -> "Letter Of Credit (status = ${state.status})"
+        is BillOfLadingState -> "Bill Of Lading"
         else -> "ContractState"
     }
 }
 
 @CordaSerializable
-data class TransactionSummary(val hash: SecureHash, val inputs: List<String>, val outputs: List<String>)
+data class TransactionSummary(val hash: SecureHash, val inputs: List<String>, val outputs: List<String>, val signers: List<String>)

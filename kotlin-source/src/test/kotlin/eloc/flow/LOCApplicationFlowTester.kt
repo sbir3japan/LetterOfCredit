@@ -117,7 +117,7 @@ class LOCApplicationFlowTester {
         val application = LetterOfCreditApplicationState(
                 owner = buyerNode.info.legalIdentities.first(),
                 issuer = issuer,
-                status = LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW,
+                status = LetterOfCreditApplicationStatus.IN_REVIEW,
                 props = applicationProps,
                 purchaseOrder = null
         )

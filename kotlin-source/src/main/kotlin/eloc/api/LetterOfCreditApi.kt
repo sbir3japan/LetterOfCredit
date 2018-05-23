@@ -125,7 +125,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @Path("awaiting-approval")
     @Produces(MediaType.APPLICATION_JSON)
     fun getAwaitingApprovalLettersOfCredit() = getFilteredStatesOfTypeWithHashesAndSigs(
-            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW }
+            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.IN_REVIEW }
     )
 
     /**
@@ -208,8 +208,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val states = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.map { it.state }
         states.forEach {
             when (it.data.status) {
-                LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW -> awaitingApproval++
-                LetterOfCreditApplicationStatus.PENDING_ADVISORY_REVIEW -> awaitingApproval++
+                LetterOfCreditApplicationStatus.IN_REVIEW -> awaitingApproval++
                 LetterOfCreditApplicationStatus.APPROVED -> active++
                 LetterOfCreditApplicationStatus.REJECTED -> rejected++
             }
@@ -269,7 +268,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val application = LetterOfCreditApplicationState(
                 owner = me,
                 issuer = issuing,
-                status = LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW,
+                status = LetterOfCreditApplicationStatus.IN_REVIEW,
                 props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising),
                 purchaseOrder = null)
 

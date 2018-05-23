@@ -44,8 +44,7 @@ data class LetterOfCreditApplicationProperties(
 
 @CordaSerializable
 enum class LetterOfCreditApplicationStatus {
-    PENDING_ISSUER_REVIEW,
-    PENDING_ADVISORY_REVIEW,
+    IN_REVIEW,
     APPROVED,
     REJECTED,
 }
