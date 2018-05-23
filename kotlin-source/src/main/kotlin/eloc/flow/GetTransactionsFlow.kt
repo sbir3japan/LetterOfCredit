@@ -27,23 +27,25 @@ class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
     @Suspendable
     override fun call(): List<TransactionSummary> {
         val signedTransactions = serviceHub.validatedTransactions.track().snapshot
-        val ledgerTransactions = signedTransactions.map { tx -> tx.toLedgerTransaction(serviceHub) }
-        return ledgerTransactions.map { tx ->
-            val inputStateTypes = tx.inputStates.map { inputState -> mapToStateSubclass(inputState) }
-            val outputStateTypes = tx.outputStates.map { outputState -> mapToStateSubclass(outputState) }
-            val signers = tx.commands.flatMap { it.signingParties }.map { it.name.organisation }
-            TransactionSummary(tx.id, inputStateTypes, outputStateTypes, signers)
+        val ledgerTransactions = signedTransactions.map { signedTx -> signedTx.toLedgerTransaction(serviceHub) }
+        return ledgerTransactions.map { ledgerTx ->
+            val inputStateTypes = ledgerTx.inputStates.map { inputState -> mapToStateSubclass(inputState) }
+            val outputStateTypes = ledgerTx.outputStates.map { outputState -> mapToStateSubclass(outputState) }
+            val signers = ledgerTx.commands.flatMap { it.signingParties }
+            val signersAndNotary = signers + ledgerTx.notary!!
+            val signerNames = signersAndNotary.map { it.name.organisation }.toSet()
+            TransactionSummary(ledgerTx.id, inputStateTypes, outputStateTypes, signerNames)
         }
     }
 
     private fun mapToStateSubclass(state: ContractState) = when (state) {
         is InvoiceState -> "Invoice"
-        is LetterOfCreditApplicationState -> "Letter Of Credit Application (status = ${state.status})"
-        is LetterOfCreditState -> "Letter Of Credit (status = ${state.status})"
+        is LetterOfCreditApplicationState -> "Letter Of Credit App. (${state.status})"
+        is LetterOfCreditState -> "Letter Of Credit (${state.status})"
         is BillOfLadingState -> "Bill Of Lading"
         else -> "ContractState"
     }
 }
 
 @CordaSerializable
-data class TransactionSummary(val hash: SecureHash, val inputs: List<String>, val outputs: List<String>, val signers: List<String>)
+data class TransactionSummary(val hash: SecureHash, val inputs: List<String>, val outputs: List<String>, val signers: Set<String>)
