@@ -64,7 +64,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     directory "./build/nodes"
     node {
-        name "O=Notary Pool,L=London,C=GB"
+        name "O=Notary Pool,L=London,C=BR"
         notary = [validating : false]
         p2pPort 10002
         cordapps = ["net.corda:corda-finance:$corda_release_version"]
@@ -101,7 +101,9 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Analog Importers,L=London,C=GB"
+        // TODO: Should be in GB. Workaround for Wildfire bug,
+        // TODO: where nodes in the same country overwrite each other.
+        name "O=Analog Importers,L=London,C=FR"
         p2pPort 10011
         rpcSettings {
             address("localhost:10012")
@@ -115,7 +117,9 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        name "O=Lok Ma Exporters,L=Shenzhen,C=CH"
+        // TODO: Should be in CH. Workaround for Wildfire bug,
+        // TODO: where nodes in the same country overwrite each other.
+        name "O=Lok Ma Exporters,L=Shenzhen,C=HK"
         p2pPort 10014
         rpcSettings {
             address("localhost:10015")
