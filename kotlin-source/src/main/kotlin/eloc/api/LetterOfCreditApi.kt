@@ -13,6 +13,7 @@ import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
+import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
@@ -20,11 +21,13 @@ import net.corda.core.messaging.startFlow
 import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
+import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
 import net.corda.finance.DOLLARS
 import net.corda.finance.contracts.getCashBalances
 import org.slf4j.Logger
+import java.security.PublicKey
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -367,16 +370,10 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
         val partyMap = parties.map { party -> party.owningKey to party }.toMap()
 
-        val response = stateAndRefs.map { stateAndRef ->
-            val state = stateAndRef.state.data
-
-            val txId = stateAndRef.ref.txhash.toString()
-            val tx = transactionMap[stateAndRef.ref.txhash]
-                    ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
-
-            val (signatures, signers) = tx.sigs.map { sig -> sig.bytes to partyMap[sig.by] }
-
-            Quadruple(txId, signatures, state, signers)
+        val response = try {
+            stateAndRefs.map { stateAndRef -> processTransaction(stateAndRef, transactionMap, partyMap) }
+        } catch (e: IllegalArgumentException) {
+            return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
         }
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
@@ -389,23 +386,32 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     private inline fun <reified T : ContractState> getStateOfTypeWithHashAndSigs(ref: String, filter: (StateAndRef<T>) -> Boolean): Response {
         val states = rpcOps.vaultQueryBy<T>().states
         val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
+        val transactionMap = transactions.map { tx -> tx.id to tx }.toMap()
         val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
+        val partyMap = parties.map { party -> party.owningKey to party }.toMap()
 
         val stateAndRef = states.find(filter)
                 ?: return Response.status(BAD_REQUEST).entity("State with ID $ref not found.").build()
-        // TODO: Refactor out shared functionality below.
-        val state = stateAndRef.state.data
 
-        val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
-                ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
-        val txId = tx.id.toString()
-
-        val sigs = tx.sigs.map { sig -> sig.bytes }
-        val signers = tx.sigs.map { sig -> parties.find { party -> party.owningKey == sig.by } }
-
-        val response = Quadruple(txId, sigs, state, signers)
+        val response = try {
+            processTransaction(stateAndRef, transactionMap, partyMap)
+        } catch (e: IllegalArgumentException) {
+            return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
+        }
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
+    }
+
+    private fun processTransaction(stateAndRef: StateAndRef<*>, transactionMap: Map<SecureHash, SignedTransaction>, partyMap: Map<PublicKey, Party>): Quadruple<*, *, *, *> {
+        val state = stateAndRef.state.data
+
+        val txId = stateAndRef.ref.txhash.toString()
+        val tx = transactionMap[stateAndRef.ref.txhash]
+                ?: throw IllegalArgumentException("State in vault has no corresponding transaction.")
+
+        val (signatures, signers) = tx.sigs.map { sig -> sig.bytes to partyMap[sig.by] }
+
+        return Quadruple(txId, signatures, state, signers)
     }
 }
 
