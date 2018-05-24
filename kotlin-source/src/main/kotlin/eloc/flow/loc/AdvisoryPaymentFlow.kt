@@ -71,21 +71,21 @@ object AdvisoryPaymentFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // #5 Let's create the loc to the beneficiary
-            Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 100), payee)
+            val (_, signingKeys) = Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 100), payee)
 
             // #6 Add other states
             builder.addInputState(locState)
             builder.addInputState(bolState)
             builder.addOutputState(outputState, LetterOfCreditContract.CONTRACT_ID)
             builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
-            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToAdvisory(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
-            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), serviceHub.myInfo.legalIdentities.first().owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToAdvisory(), listOf(ourIdentity.owningKey))
+            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), ourIdentity.owningKey)
 
             // #7 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)
 
             progressTracker.currentStep = SIGNING_TRANSACTION
-            val stx = serviceHub.signInitialTransaction(builder)
+            val stx = serviceHub.signInitialTransaction(builder, signingKeys + ourIdentity.owningKey)
 
             // #8 Send to other participants
             return subFlow(FinalityFlow(stx))
