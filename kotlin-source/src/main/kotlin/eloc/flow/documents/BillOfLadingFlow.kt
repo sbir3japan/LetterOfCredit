@@ -46,7 +46,7 @@ object BillOfLadingFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // Step 4. Create command
-            val issueCommand = Command(BillOfLadingContract.Commands.IssueBillOfLading(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(BillOfLadingContract.Commands.IssueBillOfLading(), listOf(ourIdentity.owningKey))
 
             // Step 5. Add the bol as an output state, as well as a command to the transaction builder.
             builder.addOutputState(billOfLading, BillOfLadingContract.CONTRACT_ID)

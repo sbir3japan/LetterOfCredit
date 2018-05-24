@@ -64,7 +64,7 @@ object SellerPaymentFlow {
             val bolState = bolStates.single()
 
             val payee = locState.state.data.props.beneficiary
-            val newOwner = serviceHub.myInfo.legalIdentities.first()
+            val newOwner = ourIdentity
 
             // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
@@ -81,22 +81,22 @@ object SellerPaymentFlow {
 
             // #5 Let's create the loc to the beneficiary
             progressTracker.currentStep = GENERATING_CASH_SPEND
-            Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 90), payee)
+            val (_, signingKeys) = Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 90), payee)
 
             // #6 Add other states
             builder.addInputState(locState)
             builder.addInputState(bolState)
             builder.addOutputState(outputStateLoc, LetterOfCreditContract.CONTRACT_ID)
             builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
-            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToBeneficiary(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
-            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), serviceHub.myInfo.legalIdentities.first().owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToBeneficiary(), listOf(ourIdentity.owningKey))
+            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), ourIdentity.owningKey)
 
             // #7 Let's formalise the transaction by verifying and signing
             progressTracker.currentStep = VERIFYING_TRANSACTION
             builder.verify(serviceHub)
 
             progressTracker.currentStep = SIGNING_TRANSACTION
-            val stx = serviceHub.signInitialTransaction(builder)
+            val stx = serviceHub.signInitialTransaction(builder, signingKeys + ourIdentity.owningKey)
 
             // #8 Send to other participants
             progressTracker.currentStep = RECORDING_TRANSACTION

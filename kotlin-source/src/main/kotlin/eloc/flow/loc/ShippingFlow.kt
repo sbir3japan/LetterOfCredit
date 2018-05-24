@@ -66,7 +66,7 @@ object ShippingFlow {
             // #6 Add other states
             builder.addInputState(locStateAndRef)
             builder.addOutputState(outputState, LetterOfCreditContract.CONTRACT_ID)
-            builder.addCommand(LetterOfCreditContract.Commands.ConfirmShipment(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            builder.addCommand(LetterOfCreditContract.Commands.ConfirmShipment(), listOf(ourIdentity.owningKey))
 
             // #7 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)

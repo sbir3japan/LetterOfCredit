@@ -13,6 +13,7 @@ import net.corda.core.flows.StartableByRPC
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.ProgressTracker
+import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.flows.CashIssueFlow
 import java.util.*
 
@@ -43,6 +44,7 @@ class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
         is LetterOfCreditApplicationState -> "Letter Of Credit App. (${state.status})"
         is LetterOfCreditState -> "Letter Of Credit (${state.status})"
         is BillOfLadingState -> "Bill Of Lading"
+        is Cash.State -> "Cash"
         else -> "ContractState"
     }
 }

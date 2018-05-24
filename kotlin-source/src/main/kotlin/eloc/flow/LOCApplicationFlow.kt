@@ -37,7 +37,7 @@ object LOCApplicationFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // Step 3. Create command
-            val issueCommand = Command(LetterOfCreditApplicationContract.Commands.ApplyForLetterOfCredit(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(LetterOfCreditApplicationContract.Commands.ApplyForLetterOfCredit(), listOf(ourIdentity.owningKey))
 
             // Step 4. Add the application as an output state, as well as a command to the transaction builder.
             val state = LetterOfCreditApplicationState(application.owner, application.issuer, LetterOfCreditApplicationStatus.IN_REVIEW, application.props, null)

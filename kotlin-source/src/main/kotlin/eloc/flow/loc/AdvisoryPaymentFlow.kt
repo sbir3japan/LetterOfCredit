@@ -56,7 +56,6 @@ object AdvisoryPaymentFlow {
             val bolState = bolStates.single()
 
             val payee = locState.state.data.props.advisingBank
-            val newOwner = serviceHub.myInfo.legalIdentities.first()
 
             // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION
@@ -64,7 +63,7 @@ object AdvisoryPaymentFlow {
 
             // #3 Create output state where the beneficiary is marked as being paid
             val outputState = locState.state.data.advisoryPaid()
-            val outputStateBol = bolState.state.data.copy(owner = newOwner, timestamp = Instant.now())
+            val outputStateBol = bolState.state.data.copy(owner = ourIdentity, timestamp = Instant.now())
 
             // #4 Create builder and command
             val builder = TransactionBuilder(notary = notary)

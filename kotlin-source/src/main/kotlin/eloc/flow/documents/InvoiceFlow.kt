@@ -44,7 +44,7 @@ object InvoiceFlow {
             // Step 3. Create invoice and command
             progressTracker.currentStep = ISSUING_INVOICE
             val invoice = submittedInvoice
-            val issueCommand = Command(InvoiceContract.Commands.Issue(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(InvoiceContract.Commands.Issue(), listOf(ourIdentity.owningKey))
 
             // Step 4. Add the invoice as an output state, as well as a command to the transaction builder.
             progressTracker.currentStep = ADDING_STATES

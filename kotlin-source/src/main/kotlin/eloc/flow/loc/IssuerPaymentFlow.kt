@@ -56,7 +56,7 @@ object IssuerPaymentFlow {
             val bolState = bolStates.single()
 
             val payee = locState.state.data.props.issuingBank
-            val newOwner = serviceHub.myInfo.legalIdentities.first()
+            val newOwner = ourIdentity
 
             // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION
@@ -71,21 +71,21 @@ object IssuerPaymentFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // #5 Let's create the loc to the beneficiary
-            Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 110), payee)
+            val (_, signingKeys) = Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 110), payee)
 
             // #6 Add other states
             builder.addInputState(locState)
             builder.addInputState(bolState)
             builder.addOutputState(outputStateLoc, LetterOfCreditContract.CONTRACT_ID)
             builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
-            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToIssuer(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
-            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), serviceHub.myInfo.legalIdentities.first().owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToIssuer(), listOf(ourIdentity.owningKey))
+            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), ourIdentity.owningKey)
 
             // #7 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)
             progressTracker.currentStep = SIGNING_TRANSACTION
 
-            val stx = serviceHub.signInitialTransaction(builder)
+            val stx = serviceHub.signInitialTransaction(builder, signingKeys + ourIdentity.owningKey)
 
             // #8 Send to other participants
             return subFlow(FinalityFlow(stx))
