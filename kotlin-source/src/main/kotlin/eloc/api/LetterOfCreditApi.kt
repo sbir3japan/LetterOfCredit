@@ -395,17 +395,19 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
      */
     private fun mapStatesToHashesAndSigs(stateAndRefs: List<StateAndRef<ContractState>>): Response {
         val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
+        val transactionMap = transactions.map { tx -> tx.id to tx }.toMap()
         val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
+        val partyMap = parties.map { party -> party.owningKey to party }.toMap()
 
         val response = stateAndRefs.map { stateAndRef ->
             val state = stateAndRef.state.data
 
-            val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
+            val tx = transactionMap[stateAndRef.ref.txhash]
                     ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
             val txId = tx.id.toString()
 
             val sigs = tx.sigs.map { sig -> sig.bytes }
-            val signers = tx.sigs.map { sig -> parties.find { party -> party.owningKey == sig.by } }
+            val signers = tx.sigs.map { sig -> partyMap[sig.by] }
 
             Quadruple(txId, sigs, state, signers)
         }

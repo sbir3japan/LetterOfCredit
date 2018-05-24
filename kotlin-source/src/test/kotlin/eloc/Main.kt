@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
                 // These two bank nodes are pre-issued cash.
-                val bankNodeNames = listOf("O=Shenzhen State Bank,L=Shenzhen,C=CN", "O=First Bank of London,L=London,C=GB")
+                val bankNodeNames = listOf("O=First Bank of London,L=London,C=GB", "O=Shenzhen State Bank,L=Shenzhen,C=CN")
                 bankNodeNames.forEach { name ->
                     val node = startNode(providedName = CordaX500Name.parse(name), rpcUsers = rpcUserList).get()
                     node.rpc.startFlow(::SelfIssueCashFlow, 10000000.DOLLARS).returnValue.get()
