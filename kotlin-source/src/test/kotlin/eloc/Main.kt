@@ -38,9 +38,9 @@ fun main(args: Array<String>) {
 
                 val nodeNames = listOf(
                         CordaX500Name("First Bank of London", "London", "GB"),
-                        CordaX500Name("Shenzhen State Bank", "Shenzhen", "CH"),
-                        CordaX500Name("Analog Importers", "London", "GB"),
-                        CordaX500Name("Lok Ma Exporters", "Shenzhen", "CH"),
+                        CordaX500Name("Shenzhen State Bank", "Shenzhen", "CN"),
+                        CordaX500Name("Analog Importers", "London", "FR"),
+                        CordaX500Name("Lok Ma Exporters", "Shenzhen", "HK"),
                         CordaX500Name("Federal Reserve", "New York", "US"))
 
                 nodeNames.forEach { name ->
