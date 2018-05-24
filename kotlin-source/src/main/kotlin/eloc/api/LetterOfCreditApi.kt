@@ -20,12 +20,10 @@ import net.corda.core.messaging.startFlow
 import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
-import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
 import net.corda.finance.DOLLARS
 import net.corda.finance.contracts.getCashBalances
-import net.corda.finance.flows.CashIssueFlow
 import org.slf4j.Logger
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -41,11 +39,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     private val myLegalName = me.name
     private val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary", "London", "GB"),
             CordaX500Name("NetworkMapService", "London", "GB"))
-
-    companion object {
-        val logger: Logger = loggerFor<LetterOfCreditApi>()
-    }
-
     /**
      * Returns the node's name.
      */
@@ -194,30 +187,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
             Pair(it.state.data.owner, formatter.format(Date.from(it.state.data.timestamp)))
         }
         return priorStates.union(currentState).toList()
-    }
-
-    @GET
-    @Path("loc-stats")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun letterOfCreditStats(): Map<String, Int> {
-        var awaitingApproval = 0
-        var active = 0
-        var awaitingPayment = 0
-        var rejected = 0
-
-        val states = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.map { it.state }
-        states.forEach {
-            when (it.data.status) {
-                LetterOfCreditApplicationStatus.IN_REVIEW -> awaitingApproval++
-                LetterOfCreditApplicationStatus.APPROVED -> active++
-                LetterOfCreditApplicationStatus.REJECTED -> rejected++
-            }
-        }
-
-        return mapOf(
-                "awaitingApproval" to awaitingApproval,
-                "active" to active,
-                "awaitingPayment" to awaitingPayment)
     }
 
     @POST
@@ -402,14 +371,13 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val response = stateAndRefs.map { stateAndRef ->
             val state = stateAndRef.state.data
 
+            val txId = stateAndRef.ref.txhash.toString()
             val tx = transactionMap[stateAndRef.ref.txhash]
                     ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
-            val txId = tx.id.toString()
 
-            val sigs = tx.sigs.map { sig -> sig.bytes }
-            val signers = tx.sigs.map { sig -> partyMap[sig.by] }
+            val (signatures, signers) = tx.sigs.map { sig -> sig.bytes to partyMap[sig.by] }
 
-            Quadruple(txId, sigs, state, signers)
+            Quadruple(txId, signatures, state, signers)
         }
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
@@ -442,7 +410,4 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     }
 }
 
-data class Quadruple<out A, out B, out C, out D>(
-        val first: A, val second: B, val third: C, val fourth: D) {
-    public override fun toString(): String = "($first, $second, $third, $fourth)"
-}
+data class Quadruple<out A, out B, out C, out D>(val first: A, val second: B, val third: C, val fourth: D)

@@ -3,6 +3,7 @@ package eloc.flow.loc
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingContract
 import eloc.contract.LetterOfCreditContract
+import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
@@ -23,7 +24,7 @@ object SellerPaymentFlow {
     class MakePayment(val locId: String) : FlowLogic<SignedTransaction>() {
         companion object {
             object GATHERING_STATES : ProgressTracker.Step("Gathering states.")
-            object CREATING_OUTPUT_STATES: ProgressTracker.Step("Creating output ")
+            object CREATING_OUTPUT_STATES : ProgressTracker.Step("Creating output ")
             object GENERATING_APPLICATION_TRANSACTION : ProgressTracker.Step("Generating loc transaction.")
             object GENERATING_CASH_SPEND : ProgressTracker.Step("Generating Cash spend.")
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
@@ -46,7 +47,7 @@ object SellerPaymentFlow {
         )
 
         @Suspendable
-        override fun call() : SignedTransaction {
+        override fun call(): SignedTransaction {
             // #1 Pull state from vault and reference to payee
             progressTracker.currentStep = GATHERING_STATES
             val locStates = serviceHub.vaultService.queryBy<LetterOfCreditState>().states.filter {
@@ -106,34 +107,10 @@ object SellerPaymentFlow {
 
     @InitiatingFlow
     @InitiatedBy(MakePayment::class)
-    class ReceivePayment(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
-        companion object {
-            object RECEIVING : ProgressTracker.Step("Receiving loc")
-            object VALIDATING : ProgressTracker.Step("Validating loc signature")
-            object SIGNING : ProgressTracker.Step("Signing loc")
-            object SUCCESS : ProgressTracker.Step("Payment successful")
-            object BROADCAST : ProgressTracker.Step("Broadcast loc state to required parties")
-
-            fun tracker() = ProgressTracker(
-                    RECEIVING,
-                    VALIDATING,
-                    SIGNING,
-                    SUCCESS,
-                    BROADCAST
-            )
-        }
-        override val progressTracker = tracker()
+    class ReceivePayment(val counterpartySession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(counterpartySession) {
-                @Suspendable
-                override fun checkTransaction(stx: SignedTransaction) {
-
-                }
-            }
-
-            val stx = subFlow(flow)
-            return waitForLedgerCommit(stx.id)
+        override fun call() {
+            subFlow(SignWithoutCheckingFlow(counterpartySession))
         }
     }
 }

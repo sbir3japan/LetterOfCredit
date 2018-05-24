@@ -2,6 +2,7 @@ package eloc.flow.loc
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.LetterOfCreditContract
+import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
@@ -81,34 +82,10 @@ object ShippingFlow {
 
     @InitiatingFlow
     @InitiatedBy(Ship::class)
-    class ReceiveShipped(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
-        companion object {
-            object RECEIVING : ProgressTracker.Step("Receiving loc")
-            object VALIDATING : ProgressTracker.Step("Validating loc signature")
-            object SIGNING : ProgressTracker.Step("Signing loc")
-            object SUCCESS : ProgressTracker.Step("Payment successful")
-            object BROADCAST : ProgressTracker.Step("Broadcast loc state to required parties")
-
-            fun tracker() = ProgressTracker(
-                    RECEIVING,
-                    VALIDATING,
-                    SIGNING,
-                    SUCCESS,
-                    BROADCAST
-            )
-        }
-        override val progressTracker = tracker()
+    class ReceiveShipped(val counterpartySession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(counterpartySession) {
-                @Suspendable
-                override fun checkTransaction(stx: SignedTransaction) {
-                    //Do we need to do anything?
-                }
-            }
-
-            val stx = subFlow(flow)
-            return waitForLedgerCommit(stx.id)
+        override fun call() {
+            subFlow(SignWithoutCheckingFlow(counterpartySession))
         }
     }
 }

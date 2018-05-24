@@ -8,7 +8,6 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import java.time.LocalDate
-import java.util.*
 
 data class InvoiceState(
         val owner: Party,

@@ -2,6 +2,7 @@ package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingContract
+import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.BillOfLadingState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
@@ -66,34 +67,10 @@ object BillOfLadingFlow {
     }
 
     @InitiatedBy(UploadAndSend::class)
-    class ReceiveBol(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
-        companion object {
-            object RECEIVING : ProgressTracker.Step("Receiving bol")
-            object VALIDATING : ProgressTracker.Step("Validating bol")
-            object SIGNING : ProgressTracker.Step("Signing bol")
-            object SUCCESS : ProgressTracker.Step("bol successfully recorded")
-
-            fun tracker() = ProgressTracker(
-                    RECEIVING,
-                    VALIDATING,
-                    SIGNING,
-                    SUCCESS
-            )
-        }
-
-        override val progressTracker = tracker()
-
+    class ReceiveBol(val counterpartySession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(counterpartySession) {
-                @Suspendable
-                override fun checkTransaction(stx: SignedTransaction) {
-
-                }
-            }
-
-            val stx = subFlow(flow)
-            return waitForLedgerCommit(stx.id)
+        override fun call() {
+            subFlow(SignWithoutCheckingFlow(counterpartySession))
         }
     }
 }

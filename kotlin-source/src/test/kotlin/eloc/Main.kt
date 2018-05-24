@@ -3,7 +3,6 @@ package eloc
 import eloc.flow.SelfIssueCashFlow
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.messaging.startFlow
-import net.corda.core.utilities.getOrThrow
 import net.corda.finance.DOLLARS
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.PortAllocation

@@ -2,6 +2,7 @@ package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.InvoiceContract
+import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.InvoiceState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
@@ -69,16 +70,10 @@ object InvoiceFlow {
     }
 
     @InitiatedBy(UploadAndSend::class)
-    class ReceiveInvoice(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
+    class ReceiveInvoice(val counterpartySession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(counterpartySession) {
-                @Suspendable
-                override fun checkTransaction(stx: SignedTransaction) {
-                }
-            }
-            val stx = subFlow(flow)
-            return waitForLedgerCommit(stx.id)
+        override fun call() {
+            subFlow(SignWithoutCheckingFlow(counterpartySession))
         }
     }
 }

@@ -5,23 +5,16 @@ import eloc.state.BillOfLadingState
 import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
 import eloc.state.LetterOfCreditState
-import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.serialization.CordaSerializable
-import net.corda.core.utilities.OpaqueBytes
-import net.corda.core.utilities.ProgressTracker
 import net.corda.finance.contracts.asset.Cash
-import net.corda.finance.flows.CashIssueFlow
-import java.util.*
 
 /**
- * Self issues the calling node an amount of cash in the desired currency.
- * Only used for demo/sample/option purposes!
+ * Gets a summary of all the transactions on the node.
  */
-
 @CordaSerializable
 @StartableByRPC
 class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
