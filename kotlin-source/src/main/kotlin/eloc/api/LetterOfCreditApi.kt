@@ -220,23 +220,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
                 "awaitingPayment" to awaitingPayment)
     }
 
-    /**
-     * Until WildFire is integrated, we can self-issue cash.
-     */
-    @GET
-    @Path("issue-cash")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun issueCash(): Response {
-        val notary = rpcOps.notaryIdentities().firstOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("Could not find a notary.").type(MediaType.APPLICATION_JSON).build()
-        val issueRef = OpaqueBytes.of(0)
-        val issueRequest = CashIssueFlow.IssueRequest(10000000.DOLLARS, issueRef, notary)
-
-        val flowHandle = rpcOps.startFlowDynamic(CashIssueFlow::class.java, issueRequest)
-        val result = flowHandle.returnValue.getOrThrow()
-        return Response.ok(result.stx.tx.outputs.single().data).build()
-    }
-
     @POST
     @Path("create-trade")
     fun createTrade(invoice: InvoiceData): Response {
