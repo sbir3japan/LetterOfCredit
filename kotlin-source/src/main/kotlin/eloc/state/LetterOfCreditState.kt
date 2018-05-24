@@ -17,7 +17,6 @@ import java.util.*
 data class LetterOfCreditState(
         val status: LetterOfCreditStatus,
         val props: LetterOfCreditProperties) : LinearState {
-
     override val linearId = UniqueIdentifier(props.letterOfCreditID)
     override val participants = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
 

@@ -78,8 +78,8 @@ object AdvisoryPaymentFlow {
             builder.addInputState(bolState)
             builder.addOutputState(outputState, LetterOfCreditContract.CONTRACT_ID)
             builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
-            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToAdvisory(), listOf(ourIdentity.owningKey))
-            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), ourIdentity.owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.PayAdvisingBank(), listOf(ourIdentity.owningKey))
+            builder.addCommand(BillOfLadingContract.Commands.Transfer(), ourIdentity.owningKey)
 
             // #7 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)

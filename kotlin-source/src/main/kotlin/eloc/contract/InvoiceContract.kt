@@ -17,7 +17,6 @@ import java.time.ZoneOffset
  * AccountsReceivable.
  *
  */
-
 class InvoiceContract : Contract {
     companion object {
         @JvmStatic
@@ -28,39 +27,26 @@ class InvoiceContract : Contract {
         class Issue : TypeOnlyCommandData(), Commands
     }
 
-    /** The Invoice contract needs to handle three commands
+    /** The Invoice contract needs to handle one command
      * 1: Issue -- the creation of the Invoice contract. We need to confirm that the correct
      *             party signed the contract and that the relevant fields are populated with valid data.
-     * 2: Assign -- the invoice is used to create another type of Contract. The assigned boolean has to change from
-     *             false to true.
-     * 3: Extinguish -- the invoice is deleted. Proper signing is required.
-     *
      */
     override fun verify(tx: LedgerTransaction) {
-        val command = tx.commands.requireSingleCommand<Commands>()
+        val command = tx.commands.requireSingleCommand<Commands.Issue>()
 
         val time = Instant.now()
 
-        when (command.value) {
-            is Commands.Issue -> {
-                if (tx.outputs.size != 1) {
-                    throw IllegalArgumentException("Failed requirement: during issuance of the invoice, only " +
-                            "one output invoice state should be include in the transaction. " +
-                            "Number of output states included was " + tx.outputs.size)
-                }
-                val issueOutput: InvoiceState = tx.outputsOfType<InvoiceState>().single()
-
-                requireThat {
-                    "there is no input state" using tx.inputsOfType<InvoiceState>().isEmpty()
-                    "the transaction is signed by the invoice owner" using (command.signers.contains(issueOutput.owner.owningKey))
-                    "the buyer and buyer must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
-                    "the invoice ID must not be blank" using (issueOutput.props.invoiceID.isNotEmpty())
-                    "the term must be a positive number" using (issueOutput.props.term > 0)
-                    "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
-                            > time)
-                    "there must be goods associated with the invoice" using (issueOutput.props.goods.isNotEmpty())
-                }
-            }
+        requireThat {
+            "There is only one input state" using (tx.outputs.size == 1)
+            val issueOutput = tx.outputsOfType<InvoiceState>().single()
+            "there is no input state" using tx.inputsOfType<InvoiceState>().isEmpty()
+            "the transaction is signed by the invoice owner" using (command.signers.contains(issueOutput.owner.owningKey))
+            "the buyer and buyer must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
+            "the invoice ID must not be blank" using (issueOutput.props.invoiceID.isNotEmpty())
+            "the term must be a positive number" using (issueOutput.props.term > 0)
+            "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
+                    > time)
+            "there must be goods associated with the invoice" using (issueOutput.props.goods.isNotEmpty())
         }
     }
 }

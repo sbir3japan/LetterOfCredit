@@ -20,27 +20,47 @@ class BillOfLadingContract : Contract {
     }
 
     interface Commands : CommandData {
-        class IssueBillOfLading : TypeOnlyCommandData(), Commands
-        class TransferPossession : TypeOnlyCommandData(), Commands
+        class Issue : TypeOnlyCommandData(), Commands
+        class Transfer : TypeOnlyCommandData(), Commands
     }
 
     override fun verify(tx: LedgerTransaction) {
         val command = tx.commands.requireSingleCommand<Commands>()
 
-        val outputStates: List<BillOfLadingState> = tx.outputsOfType()
-        val inputStates: List<BillOfLadingState> = tx.inputsOfType()
+        val inputStates = tx.inputsOfType<ContractState>()
+        val inputBillsOfLading = tx.inputsOfType<BillOfLadingState>()
+        val outputStates = tx.outputsOfType<ContractState>()
+        val outputBillsOfLading = tx.outputsOfType<BillOfLadingState>()
 
         when (command.value) {
-            is Commands.IssueBillOfLading -> requireThat {
-                "There is no input state" using inputStates.isEmpty()
+            is Commands.Issue -> requireThat {
+                "There are no input states." using inputStates.isEmpty()
                 "There is one output state" using (outputStates.size == 1)
-                // TODO: Signer constraints.
+                "The output state is a bill of lading" using (outputBillsOfLading.size == 1)
+                val billOfLading = outputBillsOfLading.single()
+
+                "The owner of the bill of lading is the beneficiary" using
+                        (billOfLading.owner == billOfLading.seller)
+
+                "The owner of the bill of lading is a required signer" using
+                        (billOfLading.owner.owningKey in command.signers)
             }
-            is Commands.TransferPossession -> requireThat {
-                "the state object owner has been updated" using (inputStates.single().owner != outputStates.single().owner)
-                "the beneficiary is unchanged" using (inputStates.single().buyer == outputStates.single().buyer)
-                "the bill of lading agreement properties are unchanged" using (inputStates.single().props == outputStates.single().props)
-                // TODO: Signer constraints.
+
+            is Commands.Transfer -> requireThat {
+                "There is one input state" using (inputStates.size == 1)
+                "The input state is a bill of lading" using (inputBillsOfLading.size == 1)
+                val inputBillOfLading = inputBillsOfLading.single()
+                "There is one output state" using (outputStates.size == 1)
+                "The output state is a bill of lading" using (outputBillsOfLading.size == 1)
+                val outputBillOfLading = inputBillsOfLading.single()
+
+                "The owner of the bill of lading has changed" using
+                        (inputBillOfLading.owner != outputBillOfLading.owner)
+                "the bill of lading agreement properties are unchanged" using
+                        (inputBillOfLading.props == outputBillOfLading.props)
+
+                "The owner of the input bill of lading is a required signer" using
+                        (inputBillOfLading.owner.owningKey in command.signers)
             }
         }
     }

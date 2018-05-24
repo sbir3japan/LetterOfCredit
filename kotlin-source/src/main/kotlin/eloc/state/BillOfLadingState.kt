@@ -16,6 +16,7 @@ import java.time.LocalDate
 
 data class BillOfLadingState(
         val owner: Party,
+        val seller: Party,
         val buyer: Party,
         val advisory: Party,
         val issuer: Party,

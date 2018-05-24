@@ -79,8 +79,8 @@ object IssuerPaymentFlow {
             builder.addInputState(bolState)
             builder.addOutputState(outputStateLoc, LetterOfCreditContract.CONTRACT_ID)
             builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
-            builder.addCommand(LetterOfCreditContract.Commands.AddPaymentToIssuer(), listOf(ourIdentity.owningKey))
-            builder.addCommand(BillOfLadingContract.Commands.TransferPossession(), ourIdentity.owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.PayIssuer(), listOf(ourIdentity.owningKey))
+            builder.addCommand(BillOfLadingContract.Commands.Transfer(), ourIdentity.owningKey)
 
             // #7 Let's formalise the transaction by verifying and signing
             builder.verify(serviceHub)

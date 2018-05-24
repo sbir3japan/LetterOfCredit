@@ -63,7 +63,6 @@ class PaymentFlowTests {
 
     @Test
     fun `make payment to seller`() {
-
         val futureApp = applicantNode.startFlow(LOCApplicationFlow.Apply(locApplicationState())).toCompletableFuture()
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
@@ -218,7 +217,8 @@ class PaymentFlowTests {
                 placeOfReceipt = Location(country = "USA", state ="Iowa", city = "Des Moines")
         )
 
-        return BillOfLadingState(beneficiaryNode.info.chooseIdentity(),applicantNode.info.chooseIdentity(),advisingBankNode.info.chooseIdentity(),issuerNode.info.chooseIdentity(), Instant.now(), properties)
+        val beneficiary = beneficiaryNode.info.chooseIdentity()
+        return BillOfLadingState(beneficiary, beneficiary, applicantNode.info.chooseIdentity(), advisingBankNode.info.chooseIdentity(), issuerNode.info.chooseIdentity(), Instant.now(), properties)
     }
 
     @After

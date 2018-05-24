@@ -50,7 +50,7 @@ object LOCApprovalFlow {
             builder.addOutputState(application.copy(status = LetterOfCreditApplicationStatus.APPROVED), LetterOfCreditApplicationContract.CONTRACT_ID)
             builder.addOutputState(loc, LetterOfCreditContract.CONTRACT_ID)
             builder.addCommand(LetterOfCreditApplicationContract.Commands.Approve(), application.issuer.owningKey)
-            builder.addCommand(LetterOfCreditContract.Commands.Issuance(), application.issuer.owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.Issue(), application.issuer.owningKey)
 
             // Step 2. Add timestamp
             progressTracker.currentStep = SIGNING_TRANSACTION

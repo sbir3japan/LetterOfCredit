@@ -17,7 +17,6 @@ data class LetterOfCreditApplicationState(
         val status: LetterOfCreditApplicationStatus,
         val props: LetterOfCreditApplicationProperties,
         val purchaseOrder: Attachment?) : LinearState {
-
     override val participants = listOf( owner, issuer )
     override val linearId = UniqueIdentifier(props.letterOfCreditApplicationID)
 }
