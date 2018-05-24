@@ -1,8 +1,10 @@
 package eloc
 
+import eloc.flow.SelfIssueCashFlow
 import net.corda.core.identity.CordaX500Name
+import net.corda.core.messaging.startFlow
 import net.corda.core.utilities.getOrThrow
-import net.corda.testing.core.DUMMY_NOTARY_NAME
+import net.corda.finance.DOLLARS
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.PortAllocation
 import net.corda.testing.driver.driver
@@ -32,19 +34,21 @@ fun main(args: Array<String>) {
             startNodesInProcess = true,
             waitForAllNodesToFinish = true,
             extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas"),
-            notarySpecs = listOf(NotarySpec(DUMMY_NOTARY_NAME, validating = false))),
+            notarySpecs = listOf(NotarySpec(CordaX500Name.parse("O=Notary Pool,L=London,C=BR"), validating = false))),
             dsl = {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
-                val nodeNames = listOf(
-                        CordaX500Name("First Bank of London", "London", "GB"),
-                        CordaX500Name("Shenzhen State Bank", "Shenzhen", "CN"),
-                        CordaX500Name("Analog Importers", "London", "FR"),
-                        CordaX500Name("Lok Ma Exporters", "Shenzhen", "HK"),
-                        CordaX500Name("Federal Reserve", "New York", "US"))
+                // These two bank nodes are pre-issued cash.
+                val bankNodeNames = listOf("O=Shenzhen State Bank,L=Shenzhen,C=CN", "O=First Bank of London,L=London,C=GB")
+                bankNodeNames.forEach { name ->
+                    val node = startNode(providedName = CordaX500Name.parse(name), rpcUsers = rpcUserList).get()
+                    node.rpc.startFlow(::SelfIssueCashFlow, 10000000.DOLLARS).returnValue.get()
+                    startWebserver(node)
+                }
 
-                nodeNames.forEach { name ->
-                    val node = startNode(providedName = name, rpcUsers = rpcUserList).getOrThrow()
+                val regularNodeNames = listOf("O=Analog Importers,L=London,C=FR", "O=Lok Ma Exporters,L=Shenzhen,C=HK", "O=Central Bank of Corda,L=New York,C=US")
+                regularNodeNames.forEach { name ->
+                    val node = startNode(providedName = CordaX500Name.parse(name), rpcUsers = rpcUserList).get()
                     startWebserver(node)
                 }
             })
