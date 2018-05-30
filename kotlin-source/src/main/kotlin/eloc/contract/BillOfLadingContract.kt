@@ -55,7 +55,7 @@ class BillOfLadingContract : Contract {
                 val inputBillOfLading = inputBillsOfLading.single()
                 "One output state is a bill of lading" using (outputBillsOfLading.size == 1)
                 "One output state is a letter of credit" using (outputLettersOfCredit.size == 1)
-                val outputBillOfLading = inputBillsOfLading.single()
+                val outputBillOfLading = outputBillsOfLading.single()
 
                 "The owner of the bill of lading has changed" using
                         (inputBillOfLading.owner != outputBillOfLading.owner)

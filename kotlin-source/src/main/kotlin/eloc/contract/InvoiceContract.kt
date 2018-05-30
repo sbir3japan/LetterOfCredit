@@ -41,7 +41,7 @@ class InvoiceContract : Contract {
             val issueOutput = tx.outputsOfType<InvoiceState>().single()
             "there is no input state" using tx.inputsOfType<InvoiceState>().isEmpty()
             "the transaction is signed by the invoice owner" using (command.signers.contains(issueOutput.owner.owningKey))
-            "the buyer and buyer must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
+            "the buyer and seller must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
             "the invoice ID must not be blank" using (issueOutput.props.invoiceID.isNotEmpty())
             "the term must be a positive number" using (issueOutput.props.term > 0)
             "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
