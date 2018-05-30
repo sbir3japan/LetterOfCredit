@@ -8,13 +8,12 @@ import eloc.LetterOfCreditDataStructures.PricedGood
 import eloc.LetterOfCreditDataStructures.Weight
 import eloc.LetterOfCreditDataStructures.WeightUnit.KG
 import eloc.flow.documents.InvoiceFlow
-import eloc.state.InvoiceProperties
-import eloc.state.InvoiceState
-import eloc.state.LetterOfCreditApplicationProperties
+import eloc.state.*
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.Party
+import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
 import net.corda.finance.DOLLARS
 import net.corda.testing.node.MockNetwork
@@ -31,6 +30,7 @@ class GoldenPath {
     private lateinit var buyer: StartedMockNode
     private lateinit var issuingBank: StartedMockNode
     private lateinit var advisingBank: StartedMockNode
+    private lateinit var letterOfCreditApplicationProperties: LetterOfCreditApplicationProperties
 
     @Before
     fun setup() {
@@ -40,6 +40,34 @@ class GoldenPath {
         issuingBank = network.createPartyNode()
         advisingBank = network.createPartyNode()
         network.runNetwork()
+
+        letterOfCreditApplicationProperties = LetterOfCreditApplicationProperties(
+                letterOfCreditApplicationID = invoiceProperties.invoiceID,
+                applicationDate = LocalDate.now(),
+                typeCredit = SIGHT,
+                issuer = issuingBank.party,
+                beneficiary = seller.party,
+                applicant = buyer.party,
+                advisingBank = advisingBank.party,
+                expiryDate = LocalDate.MAX,
+                portLoading = Port("CH", "Shenzhen", "The Port", null, null),
+                portDischarge = Port("US", "Des Moines", "3 Sea Way", null, null),
+                placePresentation = Location("US", "Des Moines", "Des Moines"),
+                lastShipmentDate = LocalDate.MAX,
+                periodPresentation = Period.ofDays(1),
+                descriptionGoods = listOf(
+                        PricedGood(
+                                "OLED 6\" Screens",
+                                invoiceProperties.invoiceID,
+                                10000,
+                                400.DOLLARS,
+                                Weight(30.0, KG)
+                        )
+                ),
+                documentsRequired = listOf(),
+                invoiceRef = StateRef(SecureHash.randomSHA256(), 0),
+                amount = 30000.DOLLARS
+        )
     }
 
     @After
@@ -50,10 +78,10 @@ class GoldenPath {
     private val StartedMockNode.party: Party
         get() = info.legalIdentities.first()
 
-    private fun StartedMockNode.runFlow(flow: FlowLogic<*>) {
+    private fun StartedMockNode.runFlow(flow: FlowLogic<SignedTransaction>): SignedTransaction {
         val future = startFlow(flow)
         network.runNetwork()
-        future.getOrThrow()
+        return future.getOrThrow()
     }
 
     // TODO: Update these to reflect latest front-end autocomplete.
@@ -75,34 +103,6 @@ class GoldenPath {
             )
     )
 
-    private val letterOfCreditApplicationProperties = LetterOfCreditApplicationProperties(
-            letterOfCreditApplicationID = invoiceProperties.invoiceID,
-            applicationDate = LocalDate.now(),
-            typeCredit = SIGHT,
-            issuer = issuingBank.party,
-            beneficiary = seller.party,
-            applicant = buyer.party,
-            advisingBank = advisingBank.party,
-            expiryDate = LocalDate.MAX,
-            portLoading = Port("CH", "Shenzhen", "The Port", null, null),
-            portDischarge = Port("US", "Des Moines", "3 Sea Way", null, null),
-            placePresentation = Location("US", "Des Moines", "Des Moines"),
-            lastShipmentDate = LocalDate.MAX,
-            periodPresentation = Period.ofDays(1),
-            descriptionGoods = listOf(
-                    PricedGood(
-                            "OLED 6\" Screens",
-                            invoiceProperties.invoiceID,
-                            10000,
-                            400.DOLLARS,
-                            Weight(30.0, KG)
-                    )
-            ),
-            documentsRequired = listOf(),
-            invoiceRef = StateRef(SecureHash.randomSHA256(), 0),
-            amount = 30000.DOLLARS
-    )
-
     @Test
     fun `travel golden path`() {
         // Creating the invoice.
@@ -111,10 +111,20 @@ class GoldenPath {
         seller.runFlow(flow)
 
         // Applying for the letter of credit.
-        TODO()
+        val applicationState = LetterOfCreditApplicationState(
+                buyer.party,
+                issuingBank.party,
+                LetterOfCreditApplicationStatus.IN_REVIEW,
+                letterOfCreditApplicationProperties,
+                null)
+        val flow2 = LOCApplicationFlow.Apply(applicationState)
+        val applicationTx = buyer.runFlow(flow2)
 
         // Approving the letter of credit.
-        TODO()
+        // TODO: Too brittle. Retrieve the state ref from the vault.
+        val applicationStateRef = StateRef(applicationTx.id, 0)
+        val flow3 = LOCApprovalFlow.Approve(applicationStateRef)
+        issuingBank.runFlow(flow3)
 
         // Adding the bill of lading.
         TODO()
