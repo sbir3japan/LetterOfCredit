@@ -7,6 +7,7 @@ import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
+import net.corda.core.contracts.Amount
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
@@ -71,7 +72,7 @@ object AdvisoryPaymentFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // #5 Let's create the loc to the beneficiary
-            val (_, signingKeys) = Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 100), payee)
+            val (_, signingKeys) = Cash.generateSpend(serviceHub, builder, locState.state.data.props.amount, payee)
 
             // #6 Add other states
             builder.addInputState(locState)

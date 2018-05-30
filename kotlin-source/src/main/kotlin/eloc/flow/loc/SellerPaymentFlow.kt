@@ -7,6 +7,7 @@ import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
+import net.corda.core.contracts.Amount
 import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
@@ -82,7 +83,9 @@ object SellerPaymentFlow {
 
             // #5 Let's create the loc to the beneficiary
             progressTracker.currentStep = GENERATING_CASH_SPEND
-            val (_, signingKeys) = Cash.generateSpend(serviceHub, builder, (locState.state.data.props.amount * 90), payee)
+            val originalAmount = locState.state.data.props.amount
+            val adjustedAmount = Amount((originalAmount.quantity * 0.9).toLong(), originalAmount.token)
+            val (_, signingKeys) = Cash.generateSpend(serviceHub, builder, adjustedAmount, payee)
 
             // #6 Add other states
             builder.addInputState(locState)
