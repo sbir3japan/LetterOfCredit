@@ -3,7 +3,9 @@ package eloc
 import eloc.flow.SelfIssueCashFlow
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.messaging.startFlow
+import net.corda.core.node.NetworkParameters
 import net.corda.finance.DOLLARS
+import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.PortAllocation
 import net.corda.testing.driver.driver
@@ -33,7 +35,8 @@ fun main(args: Array<String>) {
             startNodesInProcess = true,
             waitForAllNodesToFinish = true,
             extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas"),
-            notarySpecs = listOf(NotarySpec(CordaX500Name.parse("O=Notary Pool,L=Sao Paolo,C=BR"), validating = false))),
+            notarySpecs = listOf(NotarySpec(CordaX500Name.parse("O=Notary Pool,L=Sao Paolo,C=BR"), validating = false)),
+            networkParameters = testNetworkParameters(maxTransactionSize = Int.MAX_VALUE)),
             dsl = {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
