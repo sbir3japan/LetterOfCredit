@@ -50,11 +50,9 @@ class BillOfLadingContract : Contract {
             }
 
             is Commands.Transfer -> requireThat {
-                "There are two input states" using (inputStates.size == 2)
                 "One input state is a bill of lading" using (inputBillsOfLading.size == 1)
                 "One input state is a letter of credit" using (inputLettersOfCredit.size == 1)
                 val inputBillOfLading = inputBillsOfLading.single()
-                "There are two output states" using (outputStates.size == 2)
                 "One output state is a bill of lading" using (outputBillsOfLading.size == 1)
                 "One output state is a letter of credit" using (outputLettersOfCredit.size == 1)
                 val outputBillOfLading = inputBillsOfLading.single()
@@ -68,6 +66,7 @@ class BillOfLadingContract : Contract {
                         (inputBillOfLading.owner.owningKey in command.signers)
 
                 // TODO: Constants around the input/output letter-of-credit state.
+                // TODO: Constraints around the included cash.
             }
         }
     }
