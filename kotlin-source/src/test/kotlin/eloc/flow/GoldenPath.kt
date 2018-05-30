@@ -23,6 +23,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
+import java.time.Period
 
 class GoldenPath {
     private lateinit var network: MockNetwork
@@ -87,7 +88,7 @@ class GoldenPath {
             portDischarge = Port("US", "Des Moines", "3 Sea Way", null, null),
             placePresentation = Location("US", "Des Moines", "Des Moines"),
             lastShipmentDate = LocalDate.MAX,
-            periodPresentation = 1,
+            periodPresentation = Period.ofDays(1),
             descriptionGoods = listOf(
                     PricedGood(
                             "OLED 6\" Screens",
