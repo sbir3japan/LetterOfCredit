@@ -1,6 +1,7 @@
 package eloc.contract
 
 import eloc.state.BillOfLadingState
+import eloc.state.LetterOfCreditState
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 
@@ -29,8 +30,10 @@ class BillOfLadingContract : Contract {
 
         val inputStates = tx.inputsOfType<ContractState>()
         val inputBillsOfLading = tx.inputsOfType<BillOfLadingState>()
+        val inputLettersOfCredit = tx.inputsOfType<LetterOfCreditState>()
         val outputStates = tx.outputsOfType<ContractState>()
         val outputBillsOfLading = tx.outputsOfType<BillOfLadingState>()
+        val outputLettersOfCredit = tx.outputsOfType<LetterOfCreditState>()
 
         when (command.value) {
             is Commands.Issue -> requireThat {
@@ -47,11 +50,13 @@ class BillOfLadingContract : Contract {
             }
 
             is Commands.Transfer -> requireThat {
-                "There is one input state" using (inputStates.size == 1)
-                "The input state is a bill of lading" using (inputBillsOfLading.size == 1)
+                "There are two input states" using (inputStates.size == 2)
+                "One input state is a bill of lading" using (inputBillsOfLading.size == 1)
+                "One input state is a letter of credit" using (inputLettersOfCredit.size == 1)
                 val inputBillOfLading = inputBillsOfLading.single()
-                "There is one output state" using (outputStates.size == 1)
-                "The output state is a bill of lading" using (outputBillsOfLading.size == 1)
+                "There are two output states" using (outputStates.size == 2)
+                "One output state is a bill of lading" using (outputBillsOfLading.size == 1)
+                "One output state is a letter of credit" using (outputLettersOfCredit.size == 1)
                 val outputBillOfLading = inputBillsOfLading.single()
 
                 "The owner of the bill of lading has changed" using
@@ -61,6 +66,8 @@ class BillOfLadingContract : Contract {
 
                 "The owner of the input bill of lading is a required signer" using
                         (inputBillOfLading.owner.owningKey in command.signers)
+
+                // TODO: Constants around the input/output letter-of-credit state.
             }
         }
     }
