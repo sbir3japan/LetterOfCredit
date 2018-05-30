@@ -402,17 +402,19 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
     }
 
-    private fun processTransaction(stateAndRef: StateAndRef<*>, transactionMap: Map<SecureHash, SignedTransaction>, partyMap: Map<PublicKey, Party>): Quadruple<*, *, *, *> {
+    private fun processTransaction(stateAndRef: StateAndRef<*>, transactionMap: Map<SecureHash, SignedTransaction>, partyMap: Map<PublicKey, Party>): Quadruple {
         val state = stateAndRef.state.data
 
         val txId = stateAndRef.ref.txhash.toString()
         val tx = transactionMap[stateAndRef.ref.txhash]
                 ?: throw IllegalArgumentException("State in vault has no corresponding transaction.")
 
-        val (signatures, signers) = tx.sigs.map { sig -> sig.bytes to partyMap[sig.by] }
+        val sigsAndSigners = tx.sigs.map { sig -> sig.bytes to partyMap[sig.by]!! }
+        val signatures = sigsAndSigners.map { it.first }
+        val signers = sigsAndSigners.map { it.second }
 
         return Quadruple(txId, signatures, state, signers)
     }
 }
 
-data class Quadruple<out A, out B, out C, out D>(val first: A, val second: B, val third: C, val fourth: D)
+data class Quadruple(val first: String, val second: List<ByteArray>, val third: ContractState, val fourth: List<Party>)

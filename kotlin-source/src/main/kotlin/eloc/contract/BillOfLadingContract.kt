@@ -55,15 +55,16 @@ class BillOfLadingContract : Contract {
                 val inputBillOfLading = inputBillsOfLading.single()
                 "One output state is a bill of lading" using (outputBillsOfLading.size == 1)
                 "One output state is a letter of credit" using (outputLettersOfCredit.size == 1)
-                val outputBillOfLading = inputBillsOfLading.single()
+                val outputBillOfLading = outputBillsOfLading.single()
 
                 "The owner of the bill of lading has changed" using
                         (inputBillOfLading.owner != outputBillOfLading.owner)
                 "the bill of lading agreement properties are unchanged" using
                         (inputBillOfLading.props == outputBillOfLading.props)
 
-                "The owner of the input bill of lading is a required signer" using
-                        (inputBillOfLading.owner.owningKey in command.signers)
+                // TODO: Re-add once additional signing flows have been implemented.
+//                "The owner of the input bill of lading is a required signer" using
+//                        (inputBillOfLading.owner.owningKey in command.signers)
 
                 // TODO: Constants around the input/output letter-of-credit state.
                 // TODO: Constraints around the included cash.
