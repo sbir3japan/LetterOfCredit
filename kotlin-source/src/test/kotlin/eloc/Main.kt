@@ -34,7 +34,7 @@ fun main(args: Array<String>) {
             portAllocation = CustomPortAllocation,
             startNodesInProcess = true,
             waitForAllNodesToFinish = true,
-            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas"),
+            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas", "com.wildfire.contract"),
             notarySpecs = listOf(NotarySpec(CordaX500Name.parse("O=Notary Pool,L=Sao Paolo,C=BR"), validating = false)),
             networkParameters = testNetworkParameters(maxTransactionSize = Int.MAX_VALUE)),
             dsl = {
