@@ -23,10 +23,8 @@ import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
-import net.corda.core.utilities.loggerFor
 import net.corda.finance.DOLLARS
 import net.corda.finance.contracts.getCashBalances
-import org.slf4j.Logger
 import java.security.PublicKey
 import java.text.SimpleDateFormat
 import java.time.Instant
