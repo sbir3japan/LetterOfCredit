@@ -1,12 +1,17 @@
 package eloc
 
-import eloc.flow.SelfIssueCashFlow
+import com.wildfire.contract.PledgeContract
+import com.wildfire.flow.CashFlow.Issue
+import com.wildfire.flow.PledgeFlow.InitiatePledge
+import com.wildfire.state.PledgeState
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.messaging.startFlow
-import net.corda.core.node.NetworkParameters
+import net.corda.core.utilities.getOrThrow
 import net.corda.finance.DOLLARS
+import net.corda.finance.issuedBy
 import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.driver.DriverParameters
+import net.corda.testing.driver.NodeHandle
 import net.corda.testing.driver.PortAllocation
 import net.corda.testing.driver.driver
 import net.corda.testing.node.NotarySpec
@@ -40,18 +45,45 @@ fun main(args: Array<String>) {
             dsl = {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
-                // These two bank nodes are pre-issued cash.
-                val bankNodeNames = listOf("O=First Bank of London,L=London,C=GB", "O=Shenzhen State Bank,L=Shenzhen,C=CN")
-                bankNodeNames.forEach { name ->
-                    val node = startNode(providedName = CordaX500Name.parse(name), rpcUsers = rpcUserList).get()
-                    node.rpc.startFlow(::SelfIssueCashFlow, 10000000.DOLLARS).returnValue.get()
-                    startWebserver(node)
-                }
+                val bankOne = startNode(providedName = CordaX500Name.parse("O=First Bank of London,L=London,C=GB"), rpcUsers = rpcUserList).get()
+                startWebserver(bankOne)
+                val bankTwo = startNode(providedName = CordaX500Name.parse("O=Shenzhen State Bank,L=Shenzhen,C=CN"), rpcUsers = rpcUserList).get()
+                startWebserver(bankTwo)
+                val buyer = startNode(providedName = CordaX500Name.parse("O=Analog Importers,L=Liverpool,C=FR"), rpcUsers = rpcUserList).get()
+                startWebserver(buyer)
+                val seller = startNode(providedName = CordaX500Name.parse("O=Lok Ma Exporters,L=Shenzhen,C=HK"), rpcUsers = rpcUserList).get()
+                startWebserver(seller)
+                val centralBank = startNode(providedName = CordaX500Name.parse("O=Central Bank,L=New York,C=US"), rpcUsers = rpcUserList).get()
+                startWebserver(centralBank)
 
-                val regularNodeNames = listOf("O=Analog Importers,L=Liverpool,C=FR", "O=Lok Ma Exporters,L=Shenzhen,C=HK", "O=Central Bank,L=New York,C=US")
-                regularNodeNames.forEach { name ->
-                    val node = startNode(providedName = CordaX500Name.parse(name), rpcUsers = rpcUserList).get()
-                    startWebserver(node)
-                }
+                val pledgeNonceOne = pledgeTenMillion(bankOne, centralBank)
+                val pledgeNonceTwo = pledgeTenMillion(bankTwo, centralBank)
+
+                confirmPledge(centralBank, pledgeNonceOne)
+                confirmPledge(centralBank, pledgeNonceTwo)
             })
+}
+
+private fun pledgeTenMillion(nodeHandle: NodeHandle, centralBankHandle: NodeHandle): Long {
+    val me = nodeHandle.nodeInfo.legalIdentities.first()
+    val centralBank = centralBankHandle.nodeInfo.legalIdentities.first()
+
+    val pledgeState = PledgeState(
+            10000000.DOLLARS.issuedBy(me.ref(0.toByte())),
+            listOf(centralBank, me),
+            me)
+
+    val transaction = nodeHandle.rpc
+            .startFlow(::InitiatePledge, pledgeState)
+            .returnValue
+            .getOrThrow()
+
+    return transaction.tx.outputsOfType<PledgeState>().single().nonce
+}
+
+private fun confirmPledge(centralBankHandle: NodeHandle, nonce: Long) {
+    centralBankHandle.rpc
+            .startFlow(::Issue, nonce.toString())
+            .returnValue
+            .getOrThrow()
 }
