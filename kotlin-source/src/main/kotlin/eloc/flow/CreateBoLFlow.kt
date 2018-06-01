@@ -3,6 +3,7 @@ package eloc.flow
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingContract
 import eloc.contract.LetterOfCreditContract
+import eloc.state.BillOfLadingProperties
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
@@ -11,6 +12,7 @@ import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
+import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
@@ -20,7 +22,8 @@ import java.time.Instant
 
 @InitiatingFlow
 @StartableByRPC
-class CreateBoLFlow(val letterOfCreditID: String, val billOfLading: BillOfLadingState) : FlowLogic<SignedTransaction>() {
+class CreateBoLFlow(val buyerName: String, val advisingBankName: String, val issuingBankName: String,
+                    val billOfLadingProperties: BillOfLadingProperties) : FlowLogic<SignedTransaction>() {
     companion object {
         object ISSUING_INVOICE : ProgressTracker.Step("Creating and Signing Bill of Lading")
         object SENDING_INVOICE : ProgressTracker.Step("Sending Bill of Lading to Advisory bank")
@@ -35,11 +38,21 @@ class CreateBoLFlow(val letterOfCreditID: String, val billOfLading: BillOfLading
 
     @Suspendable
     override fun call(): SignedTransaction {
+        val buyer = serviceHub.identityService.partiesFromName(buyerName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for buyer name $buyerName.")
+        val advisingBank = serviceHub.identityService.partiesFromName(advisingBankName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for advising bank name $advisingBankName.")
+        val issuingBank = serviceHub.identityService.partiesFromName(issuingBankName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for issuing bank name $issuingBankName.")
+
+        val billOfLading = BillOfLadingState(ourIdentity, ourIdentity, buyer, advisingBank, issuingBank, Instant.now(), billOfLadingProperties)
+
         // Step 0. Retrieve letter of credit.
         // TODO: Can change this to querying using a schema.
+        val id = billOfLadingProperties.billOfLadingID
         val lettersOfCredit = serviceHub.vaultService.queryBy<LetterOfCreditState>().states
-        val letterOfCreditStateAndRef = lettersOfCredit.find { stateAndRef -> stateAndRef.state.data.props.letterOfCreditID == letterOfCreditID }
-                ?: throw IllegalArgumentException("No letter of credit with ID $letterOfCreditID found.")
+        val letterOfCreditStateAndRef = lettersOfCredit.find { stateAndRef -> stateAndRef.state.data.props.letterOfCreditID == id }
+                ?: throw IllegalArgumentException("No letter of credit with ID $id found.")
 
         // Step 1. Create output letter of credit, where the status has been updated.
         val outputLetterOfCredit = letterOfCreditStateAndRef.state.data.laded()

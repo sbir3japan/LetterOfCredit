@@ -219,18 +219,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @POST
     @Path("submit-bol")
     fun submitBol(billOfLading: BillOfLadingData): Response {
-        val buyer = rpcOps.partiesFromName(billOfLading.buyer, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${billOfLading.buyer} not found.").build()
-        val advisingBank = rpcOps.partiesFromName(billOfLading.advisingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${billOfLading.advisingBank} not found.").build()
-        val issuingBank = rpcOps.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${billOfLading.issuingBank} not found.").build()
-
-        val billOfLadingProperties = billOfLading.toBillOfLadingProperties()
-
-        val state = BillOfLadingState(me, me, buyer, advisingBank, issuingBank, Instant.now(), billOfLadingProperties)
-
-        val flowFuture = rpcOps.startFlow(::CreateBoLFlow, billOfLadingProperties.billOfLadingID, state).returnValue
+        val flowFuture = rpcOps.startFlow(::CreateBoLFlow, billOfLading.buyer, billOfLading.advisingBank, billOfLading.issuingBank, billOfLading.toBillOfLadingProperties()).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
