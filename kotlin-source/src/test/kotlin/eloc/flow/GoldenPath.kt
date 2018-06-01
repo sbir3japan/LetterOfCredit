@@ -10,7 +10,6 @@ import eloc.LetterOfCreditDataStructures.WeightUnit.KG
 import eloc.state.InvoiceProperties
 import eloc.state.LetterOfCreditApplicationProperties
 import eloc.state.LetterOfCreditApplicationState
-import eloc.state.LetterOfCreditApplicationStatus
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
@@ -114,7 +113,6 @@ class GoldenPath {
         val applicationState = LetterOfCreditApplicationState(
                 buyer.party,
                 issuingBank.party,
-                LetterOfCreditApplicationStatus.IN_REVIEW,
                 letterOfCreditApplicationProperties)
         val flow2 = ApplyForLoCFlow(applicationState)
         val applicationTx = buyer.runFlow(flow2)

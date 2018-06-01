@@ -5,7 +5,6 @@ import eloc.contract.InvoiceContract
 import eloc.contract.LetterOfCreditApplicationContract
 import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
-import eloc.state.LetterOfCreditApplicationStatus
 import net.corda.core.contracts.Command
 import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowLogic
@@ -57,7 +56,7 @@ class ApplyForLoCFlow(val application: LetterOfCreditApplicationState) : FlowLog
         builder.addCommand(invoiceCommand)
 
         // Step 6. Add the application as an output state, as well as a command to the transaction builder.
-        val state = LetterOfCreditApplicationState(application.owner, application.issuer, LetterOfCreditApplicationStatus.IN_REVIEW, application.props)
+        val state = LetterOfCreditApplicationState(application.owner, application.issuer, application.props)
         builder.addOutputState(state, LetterOfCreditApplicationContract.CONTRACT_ID)
         builder.addCommand(issueCommand)
 

@@ -1,7 +1,6 @@
 package eloc.contract
 
 import eloc.state.LetterOfCreditApplicationState
-import eloc.state.LetterOfCreditApplicationStatus
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 
@@ -29,7 +28,6 @@ class LetterOfCreditApplicationContract : Contract {
                 "there is one input state" using (tx.inputStates.size == 1)
                 // TODO: Additional checks around the input invoice.
                 // TODO: Additional checks around total number of inputs/outputs.
-                "the output status must be pending issuer review" using (output.status == LetterOfCreditApplicationStatus.IN_REVIEW)
             }
             is Commands.Approve -> {
                 // TODO: Add approval logic.

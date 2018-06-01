@@ -39,7 +39,7 @@ class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
             val status = if (state.consumable) "UNLOCKED" else "LOCKED"
             "Invoice ($status)"
         }
-        is LetterOfCreditApplicationState -> "Letter Of Credit App. (${state.status})"
+        is LetterOfCreditApplicationState -> "Letter Of Credit Application"
         is LetterOfCreditState -> "Letter Of Credit (${state.status})"
         is BillOfLadingState -> "Bill Of Lading"
         is Cash.State -> "Cash"

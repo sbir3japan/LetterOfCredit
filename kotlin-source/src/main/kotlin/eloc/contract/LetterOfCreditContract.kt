@@ -16,7 +16,7 @@ open class LetterOfCreditContract : Contract {
 
     interface Commands : CommandData {
         class Issue : TypeOnlyCommandData(), Commands
-        class AddBillOfLading: TypeOnlyCommandData(), Commands
+        class AddBillOfLading : TypeOnlyCommandData(), Commands
         class Ship : TypeOnlyCommandData(), Commands
         class PaySeller : TypeOnlyCommandData(), Commands
         class PayAdvisingBank : TypeOnlyCommandData(), Commands
@@ -34,12 +34,10 @@ open class LetterOfCreditContract : Contract {
                     val output = tx.outputsOfType<LetterOfCreditState>().single()
                     // confirms the LetterOfCreditApplication is included in the transaction
                     tx.inputsOfType<LetterOfCreditApplicationState>().single()
-                    requireThat {
-                        "input invoice should not be consumable" using (!invoice.consumable)
-                        //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
-                        "the LOC must be Issued" using (output.status == LetterOfCreditStatus.ISSUED)
-                        "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
-                    }
+                    "input invoice should not be consumable" using (!invoice.consumable)
+                    //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
+                    "the LOC must be Issued" using (output.status == LetterOfCreditStatus.ISSUED)
+                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                 }
             }
 

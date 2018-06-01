@@ -5,7 +5,10 @@ import eloc.flow.loc.AdvisoryPaymentFlow
 import eloc.flow.loc.IssuerPaymentFlow
 import eloc.flow.loc.SellerPaymentFlow
 import eloc.flow.loc.ShipFlow
-import eloc.state.*
+import eloc.state.BillOfLadingState
+import eloc.state.InvoiceState
+import eloc.state.LetterOfCreditApplicationState
+import eloc.state.LetterOfCreditState
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
@@ -113,19 +116,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("awaiting-approval")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getAwaitingApprovalLettersOfCredit() = getFilteredStatesOfTypeWithHashesAndSigs(
-            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.IN_REVIEW }
-    )
-
-    /**
-     * Displays all approved LoC application states that exist in the node's vault.
-     */
-    @GET
-    @Path("active")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getActiveLettersOfCredit() = getFilteredStatesOfTypeWithHashesAndSigs(
-            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.APPROVED }
-    )
+    fun getAwaitingApprovalLettersOfCredit() = getAllStatesOfTypeWithHashesAndSigs<LetterOfCreditApplicationState>()
 
     /**
      * Fetches invoice state that matches ref from the node's vault.
@@ -211,7 +202,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val application = LetterOfCreditApplicationState(
                 owner = me,
                 issuer = issuing,
-                status = LetterOfCreditApplicationStatus.IN_REVIEW,
                 props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising))
 
         val flowFuture = rpcOps.startFlow(::ApplyForLoCFlow, application).returnValue

@@ -14,7 +14,6 @@ import java.util.*
 data class LetterOfCreditApplicationState(
         val owner: Party,
         val issuer: Party,
-        val status: LetterOfCreditApplicationStatus,
         val props: LetterOfCreditApplicationProperties) : LinearState {
     override val participants = listOf( owner, issuer )
     override val linearId = UniqueIdentifier(props.letterOfCreditApplicationID)
@@ -38,10 +37,3 @@ data class LetterOfCreditApplicationProperties(
         val descriptionGoods: List<PricedGood> = ArrayList(),
         val documentsRequired: List<String> = ArrayList(),
         val amount: Amount<Currency>)
-
-@CordaSerializable
-enum class LetterOfCreditApplicationStatus {
-    IN_REVIEW,
-    APPROVED,
-    REJECTED,
-}

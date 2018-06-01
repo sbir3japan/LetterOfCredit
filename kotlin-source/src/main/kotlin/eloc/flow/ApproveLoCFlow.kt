@@ -53,7 +53,6 @@ class ApproveLoCFlow(val reference: StateRef, val invoiceReference: StateRef) : 
         //Terminate the invoice If the loc is approved to prevent double spend
         builder.addInputState(invoiceStateAndRef)
         builder.addInputState(appStateAndRef)
-        builder.addOutputState(application.copy(status = LetterOfCreditApplicationStatus.APPROVED), LetterOfCreditApplicationContract.CONTRACT_ID)
         builder.addOutputState(loc, LetterOfCreditContract.CONTRACT_ID)
         builder.addCommand(LetterOfCreditApplicationContract.Commands.Approve(), ourIdentity.owningKey)
         builder.addCommand(LetterOfCreditContract.Commands.Issue(), ourIdentity.owningKey)
