@@ -12,10 +12,12 @@ import java.time.Period
 import java.util.*
 
 data class LetterOfCreditApplicationState(
-        val owner: Party,
+        val applicant: Party,
         val issuer: Party,
+        val beneficiary: Party,
+        val advisingBank: Party,
         val props: LetterOfCreditApplicationProperties) : LinearState {
-    override val participants = listOf(owner, issuer)
+    override val participants = listOf(applicant, issuer)
     override val linearId = UniqueIdentifier(props.letterOfCreditApplicationID)
 }
 
@@ -24,10 +26,6 @@ data class LetterOfCreditApplicationProperties(
         val letterOfCreditApplicationID: String,
         val applicationDate: LocalDate,
         val typeCredit: CreditType,
-        val issuer: Party,
-        val beneficiary: Party,
-        val applicant: Party,
-        val advisingBank: Party,
         val expiryDate: LocalDate,
         val portLoading: Port,
         val portDischarge: Port,

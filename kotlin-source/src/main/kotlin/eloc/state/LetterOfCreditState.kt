@@ -4,6 +4,7 @@ import eloc.LetterOfCreditDataStructures.CreditType
 import eloc.LetterOfCreditDataStructures.Location
 import eloc.LetterOfCreditDataStructures.Port
 import eloc.LetterOfCreditDataStructures.PricedGood
+import eloc.contract.LetterOfCreditContract
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.StateRef
@@ -15,10 +16,14 @@ import java.time.Period
 import java.util.*
 
 data class LetterOfCreditState(
+        val beneficiary: Party,
+        val advisingBank: Party,
+        val issuingBank: Party,
+        val applicant: Party,
         val status: LetterOfCreditStatus,
         val props: LetterOfCreditProperties) : LinearState {
     override val linearId = UniqueIdentifier(props.letterOfCreditID)
-    override val participants = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
+    override val participants = listOf(beneficiary, advisingBank, issuingBank, applicant)
 
     fun laded() = copy(status = LetterOfCreditStatus.LADED)
     fun shipped() = copy(status = LetterOfCreditStatus.SHIPPED)
@@ -40,11 +45,7 @@ data class LetterOfCreditProperties (
         val descriptionGoods: List<PricedGood>,
         val placePresentation: Location,
         val latestShip: LocalDate,
-        val periodPresentation: Period,
-        val beneficiary: Party,
-        val issuingBank: Party,
-        val applicant: Party,
-        val advisingBank: Party) {
+        val periodPresentation: Period) {
 
     constructor(applicationProps: LetterOfCreditApplicationProperties, issueDate: LocalDate) : this(
             letterOfCreditID = applicationProps.letterOfCreditApplicationID,
@@ -58,11 +59,7 @@ data class LetterOfCreditProperties (
             descriptionGoods = applicationProps.descriptionGoods,
             placePresentation = applicationProps.placePresentation,
             latestShip = applicationProps.lastShipmentDate,
-            periodPresentation = applicationProps.periodPresentation,
-            beneficiary = applicationProps.beneficiary,
-            issuingBank = applicationProps.issuer,
-            applicant = applicationProps.applicant,
-            advisingBank = applicationProps.advisingBank
+            periodPresentation = applicationProps.periodPresentation
     )
 }
 

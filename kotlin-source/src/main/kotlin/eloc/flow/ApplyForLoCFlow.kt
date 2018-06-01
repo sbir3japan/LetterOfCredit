@@ -56,7 +56,7 @@ class ApplyForLoCFlow(val application: LetterOfCreditApplicationState) : FlowLog
         builder.addCommand(invoiceCommand)
 
         // Step 6. Add the application as an output state, as well as a command to the transaction builder.
-        val state = LetterOfCreditApplicationState(application.owner, application.issuer, application.props)
+        val state = LetterOfCreditApplicationState(application.applicant, application.issuer, application.beneficiary, application.advisingBank, application.props)
         builder.addOutputState(state, LetterOfCreditApplicationContract.CONTRACT_ID)
         builder.addCommand(issueCommand)
 

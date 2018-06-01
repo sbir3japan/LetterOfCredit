@@ -91,15 +91,11 @@ data class LocApplicationData(
      * Converts the [LocApplicationData] submitted from the front-end into the
      * properties for a [LetterOfCreditApplicationState].
      */
-    fun toLocApplicationProperties(applicant: Party, beneficiary: Party, issuing: Party, advising: Party): LetterOfCreditApplicationProperties {
+    fun toLocApplicationProperties(): LetterOfCreditApplicationProperties {
         return LetterOfCreditApplicationProperties(
                 letterOfCreditApplicationID = applicationId,
                 applicationDate = LocalDate.parse(applicationDate.substringBefore('T')),
                 typeCredit = CreditType.valueOf(typeCredit),
-                issuer = issuing,
-                beneficiary = beneficiary,
-                applicant = applicant,
-                advisingBank = advising,
                 expiryDate = LocalDate.parse(expiryDate),
                 portLoading = Port(portLoadingCountry, portLoadingCity, portLoadingAddress, null, null),
                 portDischarge = Port(portDischargeCountry, portDischargeCity, portDischargeAddress, null, null),

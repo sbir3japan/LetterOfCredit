@@ -57,7 +57,7 @@ object AdvisoryPaymentFlow {
             if (bolStates.size > 1) throw Exception("Several bill of lading states with ID $locId found.")
             val bolState = bolStates.single()
 
-            val payee = locState.state.data.props.advisingBank
+            val payee = locState.state.data.advisingBank
 
             // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary
             progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION

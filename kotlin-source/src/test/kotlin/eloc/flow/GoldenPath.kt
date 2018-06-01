@@ -32,7 +32,6 @@ class GoldenPath {
     private lateinit var buyer: StartedMockNode
     private lateinit var issuingBank: StartedMockNode
     private lateinit var advisingBank: StartedMockNode
-    private lateinit var letterOfCreditApplicationProperties: LetterOfCreditApplicationProperties
 
     @Before
     fun setup() {
@@ -42,33 +41,6 @@ class GoldenPath {
         issuingBank = network.createPartyNode(CordaX500Name.parse("O=First Bank of London,L=London,C=GB"))
         advisingBank = network.createPartyNode(CordaX500Name.parse("O=Shenzhen State Bank,L=Shenzhen,C=CN"))
         network.runNetwork()
-
-        letterOfCreditApplicationProperties = LetterOfCreditApplicationProperties(
-                letterOfCreditApplicationID = invoiceProperties.invoiceID,
-                applicationDate = LocalDate.now(),
-                typeCredit = SIGHT,
-                issuer = issuingBank.party,
-                beneficiary = seller.party,
-                applicant = buyer.party,
-                advisingBank = advisingBank.party,
-                expiryDate = LocalDate.MAX,
-                portLoading = Port("CH", "Shenzhen", "The Port", null, null),
-                portDischarge = Port("US", "Des Moines", "3 Sea Way", null, null),
-                placePresentation = Location("US", "Des Moines", "Des Moines"),
-                lastShipmentDate = LocalDate.MAX,
-                periodPresentation = Period.ofDays(1),
-                descriptionGoods = listOf(
-                        PricedGood(
-                                "OLED 6\" Screens",
-                                invoiceProperties.invoiceID,
-                                10000,
-                                400.DOLLARS,
-                                Weight(30.0, KG)
-                        )
-                ),
-                documentsRequired = listOf(),
-                amount = 30000.DOLLARS
-        )
     }
 
     @After
@@ -102,6 +74,29 @@ class GoldenPath {
             )
     )
 
+    private val letterOfCreditApplicationProperties = LetterOfCreditApplicationProperties(
+            letterOfCreditApplicationID = invoiceProperties.invoiceID,
+            applicationDate = LocalDate.now(),
+            typeCredit = SIGHT,
+            expiryDate = LocalDate.MAX,
+            portLoading = Port("CH", "Shenzhen", "The Port", null, null),
+            portDischarge = Port("US", "Des Moines", "3 Sea Way", null, null),
+            placePresentation = Location("US", "Des Moines", "Des Moines"),
+            lastShipmentDate = LocalDate.MAX,
+            periodPresentation = Period.ofDays(1),
+            descriptionGoods = listOf(
+                    PricedGood(
+                            "OLED 6\" Screens",
+                            invoiceProperties.invoiceID,
+                            10000,
+                            400.DOLLARS,
+                            Weight(30.0, KG)
+                    )
+            ),
+            documentsRequired = listOf(),
+            amount = 30000.DOLLARS
+    )
+
     @Test
     fun `travel golden path`() {
         // Creating the invoice.
@@ -112,6 +107,8 @@ class GoldenPath {
         val applicationState = LetterOfCreditApplicationState(
                 buyer.party,
                 issuingBank.party,
+                seller.party,
+                advisingBank.party,
                 letterOfCreditApplicationProperties)
         val flow2 = ApplyForLoCFlow(applicationState)
         buyer.runFlow(flow2)

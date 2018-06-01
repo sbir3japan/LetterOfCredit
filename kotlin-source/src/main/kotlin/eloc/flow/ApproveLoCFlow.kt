@@ -43,13 +43,19 @@ class ApproveLoCFlow(val reference: String) : FlowLogic<SignedTransaction>() {
             it.state.data.props.invoiceID == reference
         } ?: throw IllegalArgumentException("No invoice with ID $reference found.")
 
-        val application = applicationStateAndRef.state
+        val application = applicationStateAndRef.state.data
         // Step 1. Generate transaction
         progressTracker.currentStep = GENERATING_APPROVAL_TRANSACTION
-        val locProps = LetterOfCreditProperties(application.data.props, LocalDate.now())
+        val locProps = LetterOfCreditProperties(application.props, LocalDate.now())
 
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
-        val loc = LetterOfCreditState(status = LetterOfCreditStatus.ISSUED, props = locProps)
+        val loc = LetterOfCreditState(
+                application.beneficiary,
+                application.advisingBank,
+                application.issuer,
+                application.applicant,
+                status = LetterOfCreditStatus.ISSUED,
+                props = locProps)
 
         val builder = TransactionBuilder(notary = notary)
                 .addInputState(applicationStateAndRef)

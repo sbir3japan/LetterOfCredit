@@ -47,7 +47,7 @@ open class LetterOfCreditContract : Contract {
 
             is Commands.Ship -> requireThat {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
-                "The transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
+                "The transaction is signed by the seller" using (command.signers.contains(output.beneficiary.owningKey))
                 "The LOC must be Issued" using (output.status == LetterOfCreditStatus.SHIPPED)
             }
 

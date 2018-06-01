@@ -57,7 +57,7 @@ object IssuerPaymentFlow {
             if (bolStates.size > 1) throw Exception("Several bill of lading states with ID $locId found.")
             val bolState = bolStates.single()
 
-            val payee = locState.state.data.props.issuingBank
+            val payee = locState.state.data.issuingBank
             val newOwner = ourIdentity
 
             // #2 Let's get the basics of a transaction built beginning with obtaining a reference to the notary

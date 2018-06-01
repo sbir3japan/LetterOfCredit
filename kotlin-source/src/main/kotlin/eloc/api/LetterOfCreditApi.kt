@@ -135,7 +135,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @Path("get-loc-app")
     @Produces(MediaType.APPLICATION_JSON)
     fun getLocApp(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.ref.txhash.toString() == ref }
+            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.props.letterOfCreditApplicationID == ref }
     )
 
     /**
@@ -145,7 +145,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @Path("get-loc")
     @Produces(MediaType.APPLICATION_JSON)
     fun getLetterOfCredit(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<LetterOfCreditState> -> stateAndRef.ref.txhash.toString() == ref }
+            { stateAndRef: StateAndRef<LetterOfCreditState> -> stateAndRef.state.data.props.letterOfCreditID == ref }
     )
 
     /**
@@ -189,6 +189,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
+    // TODO: Modify this end-point so that the application state is built within the flow.
     @POST
     @Path("apply-for-loc")
     fun applyForLoc(loc: LocApplicationData): Response {
@@ -200,9 +201,11 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
                 ?: return Response.status(BAD_REQUEST).entity("${loc.advisingBank} not found.").build()
 
         val application = LetterOfCreditApplicationState(
-                owner = me,
+                applicant = me,
+                beneficiary = beneficiary,
                 issuer = issuing,
-                props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising))
+                advisingBank = advising,
+                props = loc.toLocApplicationProperties())
 
         val flowFuture = rpcOps.startFlow(::ApplyForLoCFlow, application).returnValue
         val result = try {
