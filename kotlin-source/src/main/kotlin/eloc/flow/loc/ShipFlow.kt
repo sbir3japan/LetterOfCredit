@@ -43,7 +43,7 @@ class ShipFlow(val locId: String) : FlowLogic<SignedTransaction>() {
         if (locStateAndRefs.isEmpty()) throw Exception("Order could not be shipped. Letter of credit state with ID $locId not found.")
         if (locStateAndRefs.size > 1) throw Exception("Several unshipped letter of credit states with ID $locId found.")
         val locStateAndRef = locStateAndRefs.single()
-        if (locStateAndRef.state.data.status != LetterOfCreditStatus.ISSUED) throw Exception("Order could not be shipped. It has already been shipped or terminated.")
+        if (locStateAndRef.state.data.status != LetterOfCreditStatus.LADED) throw Exception("Order could not be shipped. It has already been shipped or terminated.")
 
         // #2 Check that bill of lading has been created, this will throw an error if exactly one of each doesn't exist.
         val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count { it.state.data.props.billOfLadingID == locId }

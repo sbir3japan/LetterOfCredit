@@ -2,9 +2,15 @@ package eloc.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingContract
+import eloc.contract.LetterOfCreditContract
 import eloc.state.BillOfLadingState
+import eloc.state.LetterOfCreditState
+import eloc.state.LetterOfCreditStatus
 import net.corda.core.contracts.Command
-import net.corda.core.flows.*
+import net.corda.core.flows.FinalityFlow
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.InitiatingFlow
+import net.corda.core.flows.StartableByRPC
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
@@ -14,7 +20,7 @@ import java.time.Instant
 
 @InitiatingFlow
 @StartableByRPC
-class CreateBoLFlow(val billOfLading: BillOfLadingState) : FlowLogic<SignedTransaction>() {
+class CreateBoLFlow(val letterOfCreditID: String, val billOfLading: BillOfLadingState) : FlowLogic<SignedTransaction>() {
     companion object {
         object ISSUING_INVOICE : ProgressTracker.Step("Creating and Signing Bill of Lading")
         object SENDING_INVOICE : ProgressTracker.Step("Sending Bill of Lading to Advisory bank")
@@ -29,11 +35,14 @@ class CreateBoLFlow(val billOfLading: BillOfLadingState) : FlowLogic<SignedTrans
 
     @Suspendable
     override fun call(): SignedTransaction {
-        // Step 1. Check a bill of lading doesn't already exist for this letter of credit.
-        val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count {
-            it.state.data.props.billOfLadingID == billOfLading.props.billOfLadingID
-        }
-        if (bolStateCount != 0) throw Exception("Bill of lading has already been added.")
+        // Step 0. Retrieve letter of credit.
+        // TODO: Can change this to querying using a schema.
+        val lettersOfCredit = serviceHub.vaultService.queryBy<LetterOfCreditState>().states
+        val letterOfCreditStateAndRef = lettersOfCredit.find { stateAndRef -> stateAndRef.state.data.props.letterOfCreditID == letterOfCreditID }
+                ?: throw IllegalArgumentException("No letter of credit with ID $letterOfCreditID found.")
+
+        // Step 1. Create output letter of credit, where the status has been updated.
+        val outputLetterOfCredit = letterOfCreditStateAndRef.state.data.copy(status = LetterOfCreditStatus.LADED)
 
         progressTracker.currentStep = ISSUING_INVOICE
         // Step 2. Get a reference to the notary service on our network and our key pair.
@@ -44,11 +53,15 @@ class CreateBoLFlow(val billOfLading: BillOfLadingState) : FlowLogic<SignedTrans
         builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
         // Step 4. Create command
-        val issueCommand = Command(BillOfLadingContract.Commands.Issue(), listOf(ourIdentity.owningKey))
+        val issueCommand = Command(BillOfLadingContract.Commands.Issue(), ourIdentity.owningKey)
+        val addBillOfLadingCommand = Command(LetterOfCreditContract.Commands.AddBillOfLading(), ourIdentity.owningKey)
 
         // Step 5. Add the bol as an output state, as well as a command to the transaction builder.
+        builder.addInputState(letterOfCreditStateAndRef)
         builder.addOutputState(billOfLading, BillOfLadingContract.CONTRACT_ID)
+        builder.addOutputState(outputLetterOfCredit, LetterOfCreditContract.CONTRACT_ID)
         builder.addCommand(issueCommand)
+        builder.addCommand(addBillOfLadingCommand)
 
         // Step 6. Verify
         progressTracker.currentStep = VERIFYING_TX

@@ -16,6 +16,7 @@ open class LetterOfCreditContract : Contract {
 
     interface Commands : CommandData {
         class Issue : TypeOnlyCommandData(), Commands
+        class AddBillOfLading: TypeOnlyCommandData(), Commands
         class Ship : TypeOnlyCommandData(), Commands
         class PaySeller : TypeOnlyCommandData(), Commands
         class PayAdvisingBank : TypeOnlyCommandData(), Commands
@@ -40,6 +41,10 @@ open class LetterOfCreditContract : Contract {
                         "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
                     }
                 }
+            }
+
+            is Commands.AddBillOfLading -> requireThat {
+                // TODO: Add checking here.
             }
 
             is Commands.Ship -> requireThat {

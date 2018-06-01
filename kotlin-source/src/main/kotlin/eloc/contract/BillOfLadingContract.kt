@@ -2,6 +2,7 @@ package eloc.contract
 
 import eloc.state.BillOfLadingState
 import eloc.state.LetterOfCreditState
+import eloc.state.LetterOfCreditStatus
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 
@@ -37,16 +38,27 @@ class BillOfLadingContract : Contract {
 
         when (command.value) {
             is Commands.Issue -> requireThat {
-                "There are no input states." using inputStates.isEmpty()
-                "There is one output state" using (outputStates.size == 1)
-                "The output state is a bill of lading" using (outputBillsOfLading.size == 1)
-                val billOfLading = outputBillsOfLading.single()
+                "There are one input state." using (inputStates.size == 1)
+                "The input state is a letter of credit" using (inputLettersOfCredit.size == 1)
+                "There are two output states" using (outputStates.size == 2)
+                "One output state is the bill of lading" using (outputBillsOfLading.size == 1)
+                "The other output state is a letter of credit" using (outputLettersOfCredit.size == 1)
 
+                val billOfLading = outputBillsOfLading.single()
                 "The owner of the bill of lading is the beneficiary" using
                         (billOfLading.owner == billOfLading.seller)
+                val inputLetterOfCredit = inputLettersOfCredit.single()
+                "The input letter of credit has a status of ISSUED" using
+                        (inputLetterOfCredit.status == LetterOfCreditStatus.ISSUED)
+                val outputLetterOfCredit = outputLettersOfCredit.single()
+                "The output letter of credit has a status of LADED" using
+                        (outputLetterOfCredit.status == LetterOfCreditStatus.LADED)
+                "The letter of credit is unchanged apart from the status field" using
+                        (inputLetterOfCredit.copy(status = outputLetterOfCredit.status) == outputLetterOfCredit)
 
                 "The owner of the bill of lading is a required signer" using
                         (billOfLading.owner.owningKey in command.signers)
+                // TODO: Constraints on letter-of-credit signers.
             }
 
             is Commands.Transfer -> requireThat {
@@ -63,8 +75,8 @@ class BillOfLadingContract : Contract {
                         (inputBillOfLading.props == outputBillOfLading.props)
 
                 // TODO: Re-add once additional signing flows have been implemented.
-//                "The owner of the input bill of lading is a required signer" using
-//                        (inputBillOfLading.owner.owningKey in command.signers)
+                //  "The owner of the input bill of lading is a required signer" using
+                //          (inputBillOfLading.owner.owningKey in command.signers)
 
                 // TODO: Constants around the input/output letter-of-credit state.
                 // TODO: Constraints around the included cash.

@@ -68,6 +68,7 @@ data class LetterOfCreditProperties (
 @CordaSerializable
 enum class LetterOfCreditStatus {
     ISSUED,
+    LADED,
     SHIPPED,
     BENEFICIARY_PAID,
     ADVISORY_PAID,
