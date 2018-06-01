@@ -120,66 +120,6 @@ data class LocApplicationData(
 }
 
 /**
- * The packing-list form data that is submitted by the front-end to create a
- * packing-list state.
- */
-data class PackingListData(
-        val issueDate: String,
-        val orderNumber: String,
-        val sellersOrderNumber: String,
-
-        val transportMethod: String,
-        val nameOfVessel: String,
-        val billOfLadingNumber: String,
-
-        val sellerName: String,
-        val sellerAddress: String,
-
-        val buyerName: String,
-        val buyerAddress: String,
-
-        val goodsDescription: String,
-        val goodsPurchaseOrderRef: String,
-        val goodsQuantity: Int,
-        val goodsUnitPrice: String,
-        val goodsGrossWeight: Int,
-
-        val attachmentHash: String?,
-        val advisingBank: String,
-        val issuingBank: String) {
-
-    /**
-     * Converts the [PackingListData] submitted from the front-end into the
-     * properties for a [PackingListState].
-     */
-    fun toPackingListProperties() = PackingListProperties(
-            issueDate = LocalDate.parse(issueDate.substringBefore('T')),
-            orderNumber = orderNumber,
-            sellersOrderNumber = sellersOrderNumber,
-            transportMethod = transportMethod,
-            nameOfVessel = nameOfVessel,
-            billOfLadingNumber = billOfLadingNumber,
-            seller = Company(
-                    name = sellerName,
-                    address = sellerAddress,
-                    phone = ""),
-            buyer = Company(
-                    name = buyerName,
-                    address = buyerAddress,
-                    phone = ""),
-            descriptionOfGoods = arrayListOf(
-                    PricedGood(
-                            description = goodsDescription,
-                            purchaseOrderRef = goodsPurchaseOrderRef,
-                            quantity = goodsQuantity,
-                            unitPrice = Amount.parseCurrency(goodsUnitPrice),
-                            grossWeight = Weight(goodsGrossWeight.toDouble(), WeightUnit.KG)
-                    )),
-            attachmentHash = SecureHash.SHA256(ByteArray(32, { 0.toByte() }))
-    )
-}
-
-/**
  * The bill-of-lading form data that is submitted by the front-end to create a
  * bill-of-lading state.
  */

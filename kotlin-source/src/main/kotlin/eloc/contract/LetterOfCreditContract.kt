@@ -3,6 +3,7 @@ package eloc.contract
 import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
 import eloc.state.LetterOfCreditState
+import eloc.state.LetterOfCreditStatus
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 import net.corda.finance.contracts.asset.Cash
@@ -14,11 +15,11 @@ open class LetterOfCreditContract : Contract {
     }
 
     interface Commands : CommandData {
-        class Issuance : TypeOnlyCommandData(), Commands
-        class ConfirmShipment : TypeOnlyCommandData(), Commands
-        class AddPaymentToAdvisory :TypeOnlyCommandData(), Commands
-        class AddPaymentToIssuer :TypeOnlyCommandData(), Commands
-        class AddPaymentToBeneficiary : TypeOnlyCommandData(), Commands
+        class Issue : TypeOnlyCommandData(), Commands
+        class Ship : TypeOnlyCommandData(), Commands
+        class PaySeller : TypeOnlyCommandData(), Commands
+        class PayAdvisingBank : TypeOnlyCommandData(), Commands
+        class PayIssuer : TypeOnlyCommandData(), Commands
     }
 
     override fun verify(tx: LedgerTransaction) {
@@ -43,48 +44,37 @@ open class LetterOfCreditContract : Contract {
                 }
             }
 
-            is Commands.ConfirmShipment -> {
+            is Commands.Ship -> requireThat {
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
-                requireThat {
-                    "the transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
-                    "the LOC must be Issued" using (output.issued == true)
-                }
+                "The transaction is signed by the seller" using (command.signers.contains(output.props.beneficiary.owningKey))
+                "The LOC must be Issued" using (output.status == LetterOfCreditStatus.SHIPPED)
             }
 
-            is Commands.AddPaymentToAdvisory -> {
+            is Commands.PaySeller -> requireThat {
                 val input = tx.inputsOfType<LetterOfCreditState>().single()
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
-                requireThat {
-                    "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.advisoryPaid == false)
-                    "Beneficiary is marked as being paid in output state" using (output.advisoryPaid == true)
-                    "LOC must not be terminated" using (output.terminated == false)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
-                }
+                "Cash is part of the output state." using (tx.outputsOfType<Cash.State>().any())
+                "Seller must not already have been paid." using (input.status == LetterOfCreditStatus.SHIPPED)
+                "Transaction must update ledger to mark seller as paid." using (output.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+                "The period of presentation must be a positive number." using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
             }
 
-            is Commands.AddPaymentToIssuer -> {
+            is Commands.PayAdvisingBank -> requireThat {
                 val input = tx.inputsOfType<LetterOfCreditState>().single()
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
-                requireThat {
-                    "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.issuerPaid == false)
-                    "Beneficiary is marked as being paid in output state" using (output.issuerPaid == true)
-                    "LOC must not be terminated" using (output.terminated == false)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
-                }
+                "Cash is part of the output state." using (tx.outputsOfType<Cash.State>().any())
+                "Advising bank must not already have been paid." using (input.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+                "Advising bank is marked as being paid in output state." using (output.status == LetterOfCreditStatus.ADVISORY_PAID)
+                "The period of presentation must be a positive number." using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
             }
 
-            is Commands.AddPaymentToBeneficiary -> {
+            is Commands.PayIssuer -> requireThat {
                 val input = tx.inputsOfType<LetterOfCreditState>().single()
                 val output = tx.outputsOfType<LetterOfCreditState>().single()
-                requireThat {
-                    "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
-                    "Beneficiary has not already been paid" using (input.beneficiaryPaid == false)
-                    "Beneficiary is marked as being paid in output state" using (output.beneficiaryPaid == true)
-                    "LOC must not be terminated" using (output.terminated == false)
-                    "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
-                }
+                "Cash is part of the output state" using (tx.outputsOfType<Cash.State>().any())
+                "Issuing bank must not already have been paid" using (input.status == LetterOfCreditStatus.ADVISORY_PAID)
+                "Issuing bank is marked as being paid in output state" using (output.status == LetterOfCreditStatus.ISSUER_PAID)
+                "The period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
             }
         }
     }

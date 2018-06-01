@@ -12,9 +12,8 @@ import java.util.*
 
 /**
  * Self issues the calling node an amount of cash in the desired currency.
- * Only used for demo/sample/option purposes!
+ * For demo purposes only!
  */
-
 @CordaSerializable
 @StartableByRPC
 class SelfIssueCashFlow(val amount: Amount<Currency>) : FlowLogic<Unit>() {

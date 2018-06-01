@@ -1,13 +1,9 @@
 package eloc.contract
 
 import eloc.state.BillOfLadingState
+import eloc.state.LetterOfCreditState
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Bill of Lading Contract
-//
 
 /**
  * A bill of lading is a standard-form document. It is transferable by endorsement (or by lawful transfer of possession)
@@ -18,7 +14,6 @@ import net.corda.core.transactions.LedgerTransaction
  * merchandise to the importer, and at the endorsement of the exporter the carrier may transfer title to the importer.
  * Endorsed order bills of lading can be traded as a security or serve as collateral against debt obligations.
  */
-
 class BillOfLadingContract : Contract {
     companion object {
         @JvmStatic
@@ -26,37 +21,53 @@ class BillOfLadingContract : Contract {
     }
 
     interface Commands : CommandData {
-        class IssueBillOfLading : TypeOnlyCommandData(), Commands
-        class TransferPossession : TypeOnlyCommandData(), Commands
+        class Issue : TypeOnlyCommandData(), Commands
+        class Transfer : TypeOnlyCommandData(), Commands
     }
 
-    /** The Invoice contract needs to handle two commands
-     * 1: IssueBL --
-     * 2: TransferPossession --
-     */
     override fun verify(tx: LedgerTransaction) {
-        // We should only ever receive one command at a time, else throw an exception
         val command = tx.commands.requireSingleCommand<Commands>()
 
-        val txOutputStates: List<BillOfLadingState> = tx.outputsOfType()
-        val txInputStates: List<BillOfLadingState> = tx.inputsOfType()
+        val inputStates = tx.inputsOfType<ContractState>()
+        val inputBillsOfLading = tx.inputsOfType<BillOfLadingState>()
+        val inputLettersOfCredit = tx.inputsOfType<LetterOfCreditState>()
+        val outputStates = tx.outputsOfType<ContractState>()
+        val outputBillsOfLading = tx.outputsOfType<BillOfLadingState>()
+        val outputLettersOfCredit = tx.outputsOfType<LetterOfCreditState>()
 
         when (command.value) {
-            is Commands.IssueBillOfLading -> {
-                requireThat {
-                    "there is no input state" using txInputStates.isEmpty()
-                    "there is one output state" using (txOutputStates.size == 1)
-                    // We'll relax this requirement for the demo since we don't have a carrier node
-                    //"the transaction is signed by the carrier" by (command.signers.contains(txOutputStates.single().props.carrierOwner.owningKey))
-                }
+            is Commands.Issue -> requireThat {
+                "There are no input states." using inputStates.isEmpty()
+                "There is one output state" using (outputStates.size == 1)
+                "The output state is a bill of lading" using (outputBillsOfLading.size == 1)
+                val billOfLading = outputBillsOfLading.single()
+
+                "The owner of the bill of lading is the beneficiary" using
+                        (billOfLading.owner == billOfLading.seller)
+
+                "The owner of the bill of lading is a required signer" using
+                        (billOfLading.owner.owningKey in command.signers)
             }
-            is Commands.TransferPossession -> {
-                requireThat {
-                    //"the transaction is signed by the state object owner" by (command.signers.contains(txInputStates.single().owner))
-                    "the state object owner has been updated" using (txInputStates.single().owner != txOutputStates.single().owner)
-                    "the beneficiary is unchanged" using (txInputStates.single().buyer == txOutputStates.single().buyer)
-                    "the bill of lading agreement properties are unchanged" using (txInputStates.single().props == txOutputStates.single().props)
-                }
+
+            is Commands.Transfer -> requireThat {
+                "One input state is a bill of lading" using (inputBillsOfLading.size == 1)
+                "One input state is a letter of credit" using (inputLettersOfCredit.size == 1)
+                val inputBillOfLading = inputBillsOfLading.single()
+                "One output state is a bill of lading" using (outputBillsOfLading.size == 1)
+                "One output state is a letter of credit" using (outputLettersOfCredit.size == 1)
+                val outputBillOfLading = outputBillsOfLading.single()
+
+                "The owner of the bill of lading has changed" using
+                        (inputBillOfLading.owner != outputBillOfLading.owner)
+                "the bill of lading agreement properties are unchanged" using
+                        (inputBillOfLading.props == outputBillOfLading.props)
+
+                // TODO: Re-add once additional signing flows have been implemented.
+//                "The owner of the input bill of lading is a required signer" using
+//                        (inputBillOfLading.owner.owningKey in command.signers)
+
+                // TODO: Constants around the input/output letter-of-credit state.
+                // TODO: Constraints around the included cash.
             }
         }
     }

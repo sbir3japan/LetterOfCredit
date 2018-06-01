@@ -63,7 +63,6 @@ class PaymentFlowTests {
 
     @Test
     fun `make payment to seller`() {
-
         val futureApp = applicantNode.startFlow(LOCApplicationFlow.Apply(locApplicationState())).toCompletableFuture()
         net.runNetwork()
         val resultApp = futureApp.getOrThrow()
@@ -95,8 +94,8 @@ class PaymentFlowTests {
             advisingBankNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
-        Assert.assertTrue(issuerState.state.data.beneficiaryPaid)
-        Assert.assertTrue(advisingState.state.data.beneficiaryPaid)
+        Assert.assertTrue(issuerState.state.data.status == LetterOfCreditStatus.BENEFICIARY_PAID)
+        Assert.assertTrue(advisingState.state.data.status == LetterOfCreditStatus.BENEFICIARY_PAID)
     }
 
     @Test
@@ -133,8 +132,8 @@ class PaymentFlowTests {
             advisingBankNode.services.vaultService.queryBy<LetterOfCreditState>().states.first()
         }
 
-        Assert.assertTrue(issuerState.state.data.advisoryPaid)
-        Assert.assertTrue(advisingState.state.data.advisoryPaid)
+        Assert.assertTrue(issuerState.state.data.status == LetterOfCreditStatus.ADVISORY_PAID)
+        Assert.assertTrue(advisingState.state.data.status == LetterOfCreditStatus.ADVISORY_PAID)
     }
 
     @Test
@@ -172,8 +171,8 @@ class PaymentFlowTests {
         }
 
 
-        Assert.assertTrue(issuerState.state.data.issuerPaid)
-        Assert.assertTrue(advisingState.state.data.issuerPaid)
+        Assert.assertTrue(issuerState.state.data.status == LetterOfCreditStatus.ISSUER_PAID)
+        Assert.assertTrue(advisingState.state.data.status == LetterOfCreditStatus.ISSUER_PAID)
     }
 
     private fun locApplicationState() : LetterOfCreditApplicationState {
@@ -201,7 +200,7 @@ class PaymentFlowTests {
                 invoiceRef = StateRef(SecureHash.Companion.randomSHA256(),0)
         )
 
-        return LetterOfCreditApplicationState(properties.applicant, properties.issuer, LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW, properties, null)
+        return LetterOfCreditApplicationState(properties.applicant, properties.issuer, LetterOfCreditApplicationStatus.IN_REVIEW, properties, null)
     }
 
     private fun billOfLadingState() : BillOfLadingState {
@@ -221,7 +220,8 @@ class PaymentFlowTests {
                 placeOfReceipt = Location(country = "USA", state ="Iowa", city = "Des Moines")
         )
 
-        return BillOfLadingState(beneficiaryNode.info.chooseIdentity(),applicantNode.info.chooseIdentity(),advisingBankNode.info.chooseIdentity(),issuerNode.info.chooseIdentity(), Instant.now(), properties)
+        val beneficiary = beneficiaryNode.info.chooseIdentity()
+        return BillOfLadingState(beneficiary, beneficiary, applicantNode.info.chooseIdentity(), advisingBankNode.info.chooseIdentity(), issuerNode.info.chooseIdentity(), Instant.now(), properties)
     }
 
     @After

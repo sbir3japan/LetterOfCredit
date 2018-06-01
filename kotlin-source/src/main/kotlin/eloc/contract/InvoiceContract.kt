@@ -1,12 +1,9 @@
 package eloc.contract
 
-import eloc.state.InvoiceProperties
 import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
 import net.corda.core.contracts.*
-import net.corda.core.identity.Party
 import net.corda.core.transactions.LedgerTransaction
-import net.corda.core.transactions.TransactionBuilder
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -21,7 +18,6 @@ import java.time.ZoneOffset
  * AccountsReceivable.
  *
  */
-
 class InvoiceContract : Contract {
     companion object {
         @JvmStatic
@@ -34,16 +30,12 @@ class InvoiceContract : Contract {
         class Extinguish : TypeOnlyCommandData(), Commands
     }
 
-    /** The Invoice contract needs to handle three commands
+    /** The Invoice contract needs to handle one command
      * 1: Issue -- the creation of the Invoice contract. We need to confirm that the correct
      *             party signed the contract and that the relevant fields are populated with valid data.
-     * 2: Assign -- the invoice is used to create another type of Contract. The assigned boolean has to change from
-     *             false to true.
-     * 3: Extinguish -- the invoice is deleted. Proper signing is required.
-     *
      */
     override fun verify(tx: LedgerTransaction) {
-        val command = tx.commands.requireSingleCommand<Commands>()
+        val command = tx.commands.requireSingleCommand<Commands.Issue>()
 
         val time = Instant.now()
 

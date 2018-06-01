@@ -43,7 +43,7 @@ object LOCApprovalFlow {
             val LOCProps = LetterOfCreditProperties(applicationProps, LocalDate.now())
 
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
-            val loc = LetterOfCreditState(beneficiaryPaid = false, advisoryPaid = false, issuerPaid = false, issued = true, terminated = false, shipped = false, props = LOCProps)
+            val loc = LetterOfCreditState(status = LetterOfCreditStatus.ISSUED, props = LOCProps)
 
             val builder = TransactionBuilder(notary = notary)
             val appStateAndRef = StateAndRef(state = applicationTxState, ref = reference)
@@ -79,34 +79,10 @@ object LOCApprovalFlow {
 
     @InitiatingFlow
     @InitiatedBy(Approve::class)
-    class ReceiveApproval(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
-        companion object {
-            object RECEIVING : ProgressTracker.Step("Receiving application")
-            object VALIDATING : ProgressTracker.Step("Validating application")
-            object SIGNING : ProgressTracker.Step("Signing application")
-            object SUCCESS : ProgressTracker.Step("Application successfully recorded")
-
-            fun tracker() = ProgressTracker(
-                    RECEIVING,
-                    VALIDATING,
-                    SIGNING,
-                    SUCCESS
-            )
-        }
-
-        override val progressTracker = tracker()
-
+    class ReceiveApproval(val counterpartySession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(counterpartySession) {
-                @Suspendable
-                override fun checkTransaction(stx: SignedTransaction) {
-
-                }
-            }
-
-            val stx = subFlow(flow)
-            return waitForLedgerCommit(stx.id)
+        override fun call() {
+            subFlow(SignWithoutCheckingFlow(counterpartySession))
         }
     }
 }

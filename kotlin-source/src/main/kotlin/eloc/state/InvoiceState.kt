@@ -8,16 +8,15 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import java.time.LocalDate
-import java.util.*
 
 data class InvoiceState(
         val owner: Party,
         val buyer: Party,
         val assigned: Boolean,
         val isConsumeable: Boolean,
-        val props: InvoiceProperties,
-        override val participants:List<Party> = listOf(owner, buyer)) : LinearState {
-        override val linearId = UniqueIdentifier()
+        val props: InvoiceProperties) : LinearState {
+    override val linearId = UniqueIdentifier()
+    override val participants = listOf(owner, buyer)
 }
 
 @CordaSerializable

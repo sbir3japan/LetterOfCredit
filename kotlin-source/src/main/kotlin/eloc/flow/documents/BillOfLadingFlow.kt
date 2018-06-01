@@ -2,6 +2,7 @@ package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.BillOfLadingContract
+import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.BillOfLadingState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
@@ -35,7 +36,7 @@ object BillOfLadingFlow {
             val bolStateCount = serviceHub.vaultService.queryBy<BillOfLadingState>().states.count {
                 it.state.data.props.billOfLadingID == billOfLading.props.billOfLadingID
             }
-            if (bolStateCount != 0) throw Exception("Bill of lading state with ID ${billOfLading.props.billOfLadingID} already exists.")
+            if (bolStateCount != 0) throw Exception("Bill of lading has already been added.")
 
             progressTracker.currentStep = ISSUING_INVOICE
             // Step 2. Get a reference to the notary service on our network and our key pair.
@@ -46,7 +47,7 @@ object BillOfLadingFlow {
             builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
             // Step 4. Create command
-            val issueCommand = Command(BillOfLadingContract.Commands.IssueBillOfLading(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(BillOfLadingContract.Commands.Issue(), listOf(ourIdentity.owningKey))
 
             // Step 5. Add the bol as an output state, as well as a command to the transaction builder.
             builder.addOutputState(billOfLading, BillOfLadingContract.CONTRACT_ID)
@@ -62,38 +63,6 @@ object BillOfLadingFlow {
 
             // Step 8. Assuming no exceptions, we can now finalise the transaction.
             return subFlow(FinalityFlow(stx))
-        }
-    }
-
-    @InitiatedBy(UploadAndSend::class)
-    class ReceiveBol(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
-        companion object {
-            object RECEIVING : ProgressTracker.Step("Receiving bol")
-            object VALIDATING : ProgressTracker.Step("Validating bol")
-            object SIGNING : ProgressTracker.Step("Signing bol")
-            object SUCCESS : ProgressTracker.Step("bol successfully recorded")
-
-            fun tracker() = ProgressTracker(
-                    RECEIVING,
-                    VALIDATING,
-                    SIGNING,
-                    SUCCESS
-            )
-        }
-
-        override val progressTracker = tracker()
-
-        @Suspendable
-        override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(counterpartySession) {
-                @Suspendable
-                override fun checkTransaction(stx: SignedTransaction) {
-
-                }
-            }
-
-            val stx = subFlow(flow)
-            return waitForLedgerCommit(stx.id)
         }
     }
 }

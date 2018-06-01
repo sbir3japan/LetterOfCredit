@@ -17,7 +17,6 @@ data class LetterOfCreditApplicationState(
         val status: LetterOfCreditApplicationStatus,
         val props: LetterOfCreditApplicationProperties,
         val purchaseOrder: Attachment?) : LinearState {
-
     override val participants = listOf( owner, issuer )
     override val linearId = UniqueIdentifier(props.letterOfCreditApplicationID)
 }
@@ -44,8 +43,7 @@ data class LetterOfCreditApplicationProperties(
 
 @CordaSerializable
 enum class LetterOfCreditApplicationStatus {
-    PENDING_ISSUER_REVIEW,
-    PENDING_ADVISORY_REVIEW,
+    IN_REVIEW,
     APPROVED,
     REJECTED,
 }

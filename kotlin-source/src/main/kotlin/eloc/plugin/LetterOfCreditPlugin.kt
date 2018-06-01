@@ -10,7 +10,6 @@ import java.util.function.Function
 class LetterOfCreditPlugin : WebServerPluginRegistry {
     override val webApis = listOf(Function(::LetterOfCreditApi))
     override val staticServeDirs = mapOf(
-            // This will serve the loc directory in resources to /loc
             "loc" to javaClass.classLoader.getResource("loc").toExternalForm(),
             "loc/seller" to javaClass.classLoader.getResource("loc").toExternalForm(),
             "loc/buyer" to javaClass.classLoader.getResource("loc").toExternalForm(),

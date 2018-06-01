@@ -92,14 +92,13 @@ class LOCApprovalFlowTester {
                 invoiceRef = StateRef(SecureHash.randomSHA256(), 0)
         )
 
-        val application = LetterOfCreditApplicationState(
+        return LetterOfCreditApplicationState(
                 owner = buyerNode.info.legalIdentities.first(),
                 issuer = issuer,
-                status = LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW,
+                status = LetterOfCreditApplicationStatus.IN_REVIEW,
                 props = applicationProps,
                 purchaseOrder = null
         )
-        return application
     }
 
     @After

@@ -1,9 +1,17 @@
 package eloc
 
+import com.wildfire.contract.PledgeContract
+import com.wildfire.flow.CashFlow.Issue
+import com.wildfire.flow.PledgeFlow.InitiatePledge
+import com.wildfire.state.PledgeState
 import net.corda.core.identity.CordaX500Name
+import net.corda.core.messaging.startFlow
 import net.corda.core.utilities.getOrThrow
-import net.corda.testing.core.DUMMY_NOTARY_NAME
+import net.corda.finance.DOLLARS
+import net.corda.finance.issuedBy
+import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.driver.DriverParameters
+import net.corda.testing.driver.NodeHandle
 import net.corda.testing.driver.PortAllocation
 import net.corda.testing.driver.driver
 import net.corda.testing.node.NotarySpec
@@ -31,21 +39,51 @@ fun main(args: Array<String>) {
             portAllocation = CustomPortAllocation,
             startNodesInProcess = true,
             waitForAllNodesToFinish = true,
-            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas"),
-            notarySpecs = listOf(NotarySpec(DUMMY_NOTARY_NAME, validating = false))),
+            extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas", "com.wildfire.contract"),
+            notarySpecs = listOf(NotarySpec(CordaX500Name.parse("O=Notary Pool,L=Sao Paolo,C=BR"), validating = false)),
+            networkParameters = testNetworkParameters(maxTransactionSize = Int.MAX_VALUE)),
             dsl = {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
-                val nodeNames = listOf(
-                        CordaX500Name("Issuing Bank of London", "London", "GB"),
-                        CordaX500Name("Advising Bank of New York", "New York", "US"),
-                        CordaX500Name("Visual Electronica Importers", "Iowa", "US"),
-                        CordaX500Name("Startek Technologies", "Shenzhen", "CH"),
-                        CordaX500Name("Central Bank of Corda", "New York", "US"))
+                val bankOne = startNode(providedName = CordaX500Name.parse("O=First Bank of London,L=London,C=GB"), rpcUsers = rpcUserList).get()
+                startWebserver(bankOne)
+                val bankTwo = startNode(providedName = CordaX500Name.parse("O=Shenzhen State Bank,L=Shenzhen,C=CN"), rpcUsers = rpcUserList).get()
+                startWebserver(bankTwo)
+                val buyer = startNode(providedName = CordaX500Name.parse("O=Analog Importers,L=Liverpool,C=GB"), rpcUsers = rpcUserList).get()
+                startWebserver(buyer)
+                val seller = startNode(providedName = CordaX500Name.parse("O=Lok Ma Exporters,L=Shenzhen,C=CN"), rpcUsers = rpcUserList).get()
+                startWebserver(seller)
+                val centralBank = startNode(providedName = CordaX500Name.parse("O=Central Bank,L=New York,C=US"), rpcUsers = rpcUserList).get()
+                startWebserver(centralBank)
 
-                nodeNames.forEach { name ->
-                    val node = startNode(providedName = name, rpcUsers = rpcUserList).getOrThrow()
-                    startWebserver(node)
-                }
+                val pledgeNonceOne = pledgeTenMillion(bankOne, centralBank)
+                val pledgeNonceTwo = pledgeTenMillion(bankTwo, centralBank)
+
+                confirmPledge(centralBank, pledgeNonceOne)
+                confirmPledge(centralBank, pledgeNonceTwo)
             })
+}
+
+private fun pledgeTenMillion(nodeHandle: NodeHandle, centralBankHandle: NodeHandle): Long {
+    val me = nodeHandle.nodeInfo.legalIdentities.first()
+    val centralBank = centralBankHandle.nodeInfo.legalIdentities.first()
+
+    val pledgeState = PledgeState(
+            10000000.DOLLARS.issuedBy(me.ref(0.toByte())),
+            listOf(centralBank, me),
+            me)
+
+    val transaction = nodeHandle.rpc
+            .startFlow(::InitiatePledge, pledgeState)
+            .returnValue
+            .getOrThrow()
+
+    return transaction.tx.outputsOfType<PledgeState>().single().nonce
+}
+
+private fun confirmPledge(centralBankHandle: NodeHandle, nonce: Long) {
+    centralBankHandle.rpc
+            .startFlow(::Issue, nonce.toString())
+            .returnValue
+            .getOrThrow()
 }

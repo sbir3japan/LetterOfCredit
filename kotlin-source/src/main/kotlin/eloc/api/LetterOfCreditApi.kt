@@ -1,10 +1,10 @@
 package eloc.api
 
+import eloc.flow.GetTransactionsFlow
 import eloc.flow.LOCApplicationFlow.Apply
 import eloc.flow.LOCApprovalFlow
 import eloc.flow.documents.BillOfLadingFlow
 import eloc.flow.documents.InvoiceFlow
-import eloc.flow.documents.PackingListFlow
 import eloc.flow.loc.AdvisoryPaymentFlow
 import eloc.flow.loc.IssuerPaymentFlow
 import eloc.flow.loc.SellerPaymentFlow
@@ -13,7 +13,7 @@ import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
-import net.corda.core.crypto.toStringShort
+import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
@@ -21,13 +21,11 @@ import net.corda.core.messaging.startFlow
 import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
-import net.corda.core.utilities.OpaqueBytes
+import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
-import net.corda.core.utilities.loggerFor
 import net.corda.finance.DOLLARS
 import net.corda.finance.contracts.getCashBalances
-import net.corda.finance.flows.CashIssueFlow
-import org.slf4j.Logger
+import java.security.PublicKey
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -40,13 +38,7 @@ import javax.ws.rs.core.Response.Status.BAD_REQUEST
 class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     private val me = rpcOps.nodeInfo().legalIdentities.first()
     private val myLegalName = me.name
-    private val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary", "London", "GB"),
-            CordaX500Name("NetworkMapService", "London", "GB"))
-
-    companion object {
-        val logger: Logger = loggerFor<LetterOfCreditApi>()
-    }
-
+    private val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary Pool", "London", "GB"))
     /**
      * Returns the node's name.
      */
@@ -126,7 +118,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @Path("awaiting-approval")
     @Produces(MediaType.APPLICATION_JSON)
     fun getAwaitingApprovalLettersOfCredit() = getFilteredStatesOfTypeWithHashesAndSigs(
-            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW }
+            { stateAndRef: StateAndRef<LetterOfCreditApplicationState> -> stateAndRef.state.data.status == LetterOfCreditApplicationStatus.IN_REVIEW }
     )
 
     /**
@@ -180,16 +172,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     )
 
     /**
-     * Fetches packing list state that matches ref from the node's vault.
-     */
-    @GET
-    @Path("get-packing-list")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun getPackingList(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<PackingListState> -> stateAndRef.state.data.props.orderNumber == ref }
-    )
-
-    /**
      * Fetches events concerning bill of lading state that matches ref.
      */
     @GET
@@ -205,48 +187,6 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
             Pair(it.state.data.owner, formatter.format(Date.from(it.state.data.timestamp)))
         }
         return priorStates.union(currentState).toList()
-    }
-
-    @GET
-    @Path("loc-stats")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun letterOfCreditStats(): Map<String, Int> {
-        var awaitingApproval = 0
-        var active = 0
-        var awaitingPayment = 0
-        var rejected = 0
-
-        val states = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.map { it.state }
-        states.forEach {
-            when (it.data.status) {
-                LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW -> awaitingApproval++
-                LetterOfCreditApplicationStatus.PENDING_ADVISORY_REVIEW -> awaitingApproval++
-                LetterOfCreditApplicationStatus.APPROVED -> active++
-                LetterOfCreditApplicationStatus.REJECTED -> rejected++
-            }
-        }
-
-        return mapOf(
-                "awaitingApproval" to awaitingApproval,
-                "active" to active,
-                "awaitingPayment" to awaitingPayment)
-    }
-
-    /**
-     * Until WildFire is integrated, we can self-issue cash.
-     */
-    @GET
-    @Path("issue-cash")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun issueCash(): Response {
-        val notary = rpcOps.notaryIdentities().firstOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("Could not find a notary.").type(MediaType.APPLICATION_JSON).build()
-        val issueRef = OpaqueBytes.of(0)
-        val issueRequest = CashIssueFlow.IssueRequest(10000000.DOLLARS, issueRef, notary)
-
-        val flowHandle = rpcOps.startFlowDynamic(CashIssueFlow::class.java, issueRequest)
-        val result = flowHandle.returnValue.getOrThrow()
-        return Response.ok(result.stx.tx.outputs.single().data).build()
     }
 
     @POST
@@ -280,7 +220,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val application = LetterOfCreditApplicationState(
                 owner = me,
                 issuer = issuing,
-                status = LetterOfCreditApplicationStatus.PENDING_ISSUER_REVIEW,
+                status = LetterOfCreditApplicationStatus.IN_REVIEW,
                 props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising),
                 purchaseOrder = null)
 
@@ -325,31 +265,9 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val issuingBank = rpcOps.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(BAD_REQUEST).entity("${billOfLading.issuingBank} not found.").build()
 
-        val state = BillOfLadingState(me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
+        val state = BillOfLadingState(me, me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
 
         val flowFuture = rpcOps.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue
-        val result = try {
-            flowFuture.getOrThrow()
-        } catch (e: Exception) {
-            return Response.status(BAD_REQUEST).entity(e.message).build()
-        }
-
-        return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
-    }
-
-    @POST
-    @Path("submit-pl")
-    fun submitPackingList(packingList: PackingListData): Response {
-        val buyer = rpcOps.partiesFromName(packingList.buyerName, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${packingList.buyerName} not found.").build()
-        val advisingBank = rpcOps.partiesFromName(packingList.advisingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${packingList.advisingBank} not found.").build()
-        val issuingBank = rpcOps.partiesFromName(packingList.issuingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${packingList.issuingBank} not found.").build()
-
-        val state = PackingListState(buyer, me, advisingBank, issuingBank, packingList.toPackingListProperties())
-
-        val flowFuture = rpcOps.startFlow(PackingListFlow::UploadAndSend, state).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -412,6 +330,22 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     }
 
     /**
+     * Fetches all transactions and returns them as a list of <ID, input types, output types> triples.
+     */
+    @GET
+    @Path("transactions")
+    fun transactions(): Response {
+        val flowFuture = rpcOps.startFlow(::GetTransactionsFlow).returnValue
+        val result = try {
+            flowFuture.getOrThrow()
+        } catch (e: Exception) {
+            return Response.status(BAD_REQUEST).entity(e.message).build()
+        }
+
+        return Response.ok(result, MediaType.APPLICATION_JSON).build()
+    }
+
+    /**
      * Displays all states of the given type that exist in the node's vault, along with the hashes and signatures of
      * the transaction that generated them.
      */
@@ -434,12 +368,14 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
      */
     private fun mapStatesToHashesAndSigs(stateAndRefs: List<StateAndRef<ContractState>>): Response {
         val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
+        val transactionMap = transactions.map { tx -> tx.id to tx }.toMap()
+        val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
+        val partyMap = parties.map { party -> party.owningKey to party }.toMap()
 
-        val response = stateAndRefs.map { stateAndRef ->
-            val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
-                    ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
-
-            Triple(tx.id.toString(), tx.sigs.map { it.by.toStringShort() }, stateAndRef.state.data)
+        val response = try {
+            stateAndRefs.map { stateAndRef -> processTransaction(stateAndRef, transactionMap, partyMap) }
+        } catch (e: IllegalArgumentException) {
+            return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
         }
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
@@ -452,13 +388,39 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     private inline fun <reified T : ContractState> getStateOfTypeWithHashAndSigs(ref: String, filter: (StateAndRef<T>) -> Boolean): Response {
         val states = rpcOps.vaultQueryBy<T>().states
         val transactions = rpcOps.internalVerifiedTransactionsSnapshot()
+        val transactionMap = transactions.map { tx -> tx.id to tx }.toMap()
+        val parties = rpcOps.networkMapSnapshot().map { nodeInfo -> nodeInfo.legalIdentities.first() }
+        val partyMap = parties.map { party -> party.owningKey to party }.toMap()
 
         val stateAndRef = states.find(filter)
-                ?: return Response.status(BAD_REQUEST).entity("State for ref $ref not found.").build()
-        val tx = transactions.find { tx -> tx.id == stateAndRef.ref.txhash }
-                ?: return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
-        val response = Triple(tx.id.toString(), tx.sigs.map { it.by.toStringShort() }, stateAndRef.state.data)
+                ?: return Response.status(BAD_REQUEST).entity("State with ID $ref not found.").build()
+
+        val response = try {
+            processTransaction(stateAndRef, transactionMap, partyMap)
+        } catch (e: IllegalArgumentException) {
+            return Response.status(BAD_REQUEST).entity("State in vault has no corresponding transaction.").build()
+        }
 
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
     }
+
+    private fun processTransaction(stateAndRef: StateAndRef<*>, transactionMap: Map<SecureHash, SignedTransaction>, partyMap: Map<PublicKey, Party>): TxSummary {
+        val state = stateAndRef.state.data
+
+        val txId = stateAndRef.ref.txhash.toString()
+        val tx = transactionMap.getOrDefault(stateAndRef.ref.txhash, null)
+
+        // A race-condition could have meant the transaction was not found.
+        return if (tx != null) {
+            // We fail gracefully if the party could not be mapped.
+            val sigsAndSigners = tx.sigs.map { sig -> sig.bytes to partyMap.getOrDefault(sig.by, null) }
+            val signatures = sigsAndSigners.map { it.first }
+            val signers = sigsAndSigners.map { it.second }
+            TxSummary(txId, signatures, state, signers)
+        } else {
+            TxSummary("", listOf(), null, listOf())
+        }
+    }
 }
+
+data class TxSummary(val first: String, val second: List<ByteArray>, val third: ContractState?, val fourth: List<Party?>)

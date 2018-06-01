@@ -2,6 +2,7 @@ package eloc.flow.documents
 
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.InvoiceContract
+import eloc.flow.SignWithoutCheckingFlow
 import eloc.state.InvoiceState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
@@ -44,7 +45,7 @@ object InvoiceFlow {
             // Step 3. Create invoice and command
             progressTracker.currentStep = ISSUING_INVOICE
             val invoice = submittedInvoice
-            val issueCommand = Command(InvoiceContract.Commands.Issue(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+            val issueCommand = Command(InvoiceContract.Commands.Issue(), listOf(ourIdentity.owningKey))
 
             // Step 4. Add the invoice as an output state, as well as a command to the transaction builder.
             progressTracker.currentStep = ADDING_STATES
@@ -69,16 +70,10 @@ object InvoiceFlow {
     }
 
     @InitiatedBy(UploadAndSend::class)
-    class ReceiveInvoice(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
+    class ReceiveInvoice(val counterpartySession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
-        override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(counterpartySession) {
-                @Suspendable
-                override fun checkTransaction(stx: SignedTransaction) {
-                }
-            }
-            val stx = subFlow(flow)
-            return waitForLedgerCommit(stx.id)
+        override fun call() {
+            subFlow(SignWithoutCheckingFlow(counterpartySession))
         }
     }
 }
