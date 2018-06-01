@@ -42,7 +42,7 @@ class CreateBoLFlow(val letterOfCreditID: String, val billOfLading: BillOfLading
                 ?: throw IllegalArgumentException("No letter of credit with ID $letterOfCreditID found.")
 
         // Step 1. Create output letter of credit, where the status has been updated.
-        val outputLetterOfCredit = letterOfCreditStateAndRef.state.data.copy(status = LetterOfCreditStatus.LADED)
+        val outputLetterOfCredit = letterOfCreditStateAndRef.state.data.laded()
 
         progressTracker.currentStep = ISSUING_INVOICE
         // Step 2. Get a reference to the notary service on our network and our key pair.

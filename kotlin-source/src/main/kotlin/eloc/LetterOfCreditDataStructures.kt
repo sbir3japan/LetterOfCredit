@@ -37,8 +37,7 @@ object LetterOfCreditDataStructures {
             val purchaseOrderRef: String?,
             val quantity: Int,
             val unitPrice: Amount<Currency>,
-            val grossWeight: Weight?
-    ) {
+            val grossWeight: Weight?) {
         init {
             require(quantity > 0) { "The good quantity must be a positive value." }
         }

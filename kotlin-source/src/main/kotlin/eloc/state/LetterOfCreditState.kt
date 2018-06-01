@@ -20,6 +20,7 @@ data class LetterOfCreditState(
     override val linearId = UniqueIdentifier(props.letterOfCreditID)
     override val participants = listOf(props.beneficiary, props.advisingBank, props.issuingBank, props.applicant)
 
+    fun laded() = copy(status = LetterOfCreditStatus.LADED)
     fun shipped() = copy(status = LetterOfCreditStatus.SHIPPED)
     fun beneficiaryPaid() = copy(status = LetterOfCreditStatus.BENEFICIARY_PAID)
     fun advisoryPaid() = copy(status = LetterOfCreditStatus.ADVISORY_PAID)
