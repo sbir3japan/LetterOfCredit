@@ -90,7 +90,6 @@ class GoldenPath {
             seller = Company("Lok Ma Exporters", "123 Main St. Shenzhen, China", ""),
             buyer = Company("Analog Importers", "123 Street. Iowa, US", ""),
             invoiceDate = LocalDate.now(),
-            attachmentHash = SecureHash.randomSHA256(),
             term = 5,
             goods = listOf(
                     PricedGood(

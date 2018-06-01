@@ -30,7 +30,7 @@ data class BillOfLadingState(
 data class BillOfLadingProperties(
         val billOfLadingID: String,
         val issueDate: LocalDate,
-        val carrierOwner: net.corda.core.identity.Party,
+        val carrierOwner: Party,
         val nameOfVessel: String,
         val descriptionOfGoods: List<Good>,
         val portOfLoading: Port,
@@ -40,5 +40,4 @@ data class BillOfLadingProperties(
         val shipper: Company?,
         val notify: Person?,
         val consignee: Company?,
-        val placeOfReceipt: Location?,
-        val attachment: InputStream? = null)
+        val placeOfReceipt: Location?)

@@ -25,14 +25,7 @@ data class InvoiceProperties(
         val seller: Company,
         val buyer: Company,
         val invoiceDate: LocalDate,
-        val attachmentHash: SecureHash,
         val term: Long,
         val goods: List<PricedGood>) {
-    init {
-        require(term > 0) { "the term must be a positive number" }
-        require(goods.isNotEmpty()) { "there must be goods assigned to the invoice"}
-    }
-
-    // add term to invoice date to determine the payDate
     val payDate = invoiceDate.plusDays(term)
 }

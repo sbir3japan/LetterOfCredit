@@ -50,7 +50,6 @@ data class InvoiceData(
             buyer = Company(buyerName, buyerAddress, ""),
             invoiceDate = LocalDate.parse(invoiceDate.substringBefore('T')),
             term = term.toLong(),
-            attachmentHash = SecureHash.randomSHA256(),
             goods = listOf(PricedGood(goodsDescription, goodsPurchaseOrderRef, goodsQuantity,
                     goodsUnitPrice.DOLLARS, Weight(goodsGrossWeight.toDouble(),
                     WeightUnit.KG))))
@@ -156,9 +155,7 @@ data class BillOfLadingData(
         val placeOfReceiptCity: String,
         val buyer: String,
         val advisingBank: String,
-        val issuingBank: String,
-
-        val attachment: InputStream? = null) {
+        val issuingBank: String) {
 
     /**
      * Converts the [BillOfLadingData] submitted from the front-end into the
@@ -190,7 +187,6 @@ data class BillOfLadingData(
                 Location(
                         placeOfReceiptCountry,
                         null,
-                        placeOfReceiptCity),
-                attachment)
+                        placeOfReceiptCity))
     }
 }
