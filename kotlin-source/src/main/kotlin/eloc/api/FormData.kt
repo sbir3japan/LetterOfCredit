@@ -161,12 +161,11 @@ data class BillOfLadingData(
      * Converts the [BillOfLadingData] submitted from the front-end into the
      * properties for a [BillOfLadingState].
      */
-    fun toBillOfLadingProperties(seller: Party): BillOfLadingProperties {
+    fun toBillOfLadingProperties(): BillOfLadingProperties {
         return BillOfLadingProperties(
                 billOfLadingId,
                 LocalDate.parse(issueDate.substringBefore('T')),
-                // For now we'll just set the carrier owner as the seller, in future we should have a node representing the carrier
-                seller,
+                carrierOwner,
                 nameOfVessel,
                 listOf(Good(description = goodsDescription, quantity = goodsQuantity, grossWeight = null)),
                 Port(country = portOfLoadingCountry, city = portOfLoadingCity, address = portOfLoadingAddress, state = null, name = null),

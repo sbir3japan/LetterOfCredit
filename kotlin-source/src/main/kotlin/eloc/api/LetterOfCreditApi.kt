@@ -237,7 +237,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val issuingBank = rpcOps.partiesFromName(billOfLading.issuingBank, exactMatch = false).singleOrNull()
                 ?: return Response.status(BAD_REQUEST).entity("${billOfLading.issuingBank} not found.").build()
 
-        val billOfLadingProperties = billOfLading.toBillOfLadingProperties(me)
+        val billOfLadingProperties = billOfLading.toBillOfLadingProperties()
 
         val state = BillOfLadingState(me, me, buyer, advisingBank, issuingBank, Instant.now(), billOfLadingProperties)
 

@@ -30,7 +30,7 @@ data class BillOfLadingState(
 data class BillOfLadingProperties(
         val billOfLadingID: String,
         val issueDate: LocalDate,
-        val carrierOwner: Party,
+        val carrierOwner: String,
         val nameOfVessel: String,
         val descriptionOfGoods: List<Good>,
         val portOfLoading: Port,
