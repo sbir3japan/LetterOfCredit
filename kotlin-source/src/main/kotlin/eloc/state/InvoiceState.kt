@@ -13,6 +13,7 @@ data class InvoiceState(
         val owner: Party,
         val buyer: Party,
         val assigned: Boolean,
+        val isConsumeable: Boolean,
         val props: InvoiceProperties) : LinearState {
     override val linearId = UniqueIdentifier()
     override val participants = listOf(owner, buyer)

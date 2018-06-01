@@ -1,6 +1,7 @@
 package eloc.flow
 
 import co.paralleluniverse.fibers.Suspendable
+import eloc.contract.InvoiceContract
 import eloc.contract.LetterOfCreditApplicationContract
 import eloc.contract.LetterOfCreditContract
 import eloc.state.*
@@ -16,7 +17,7 @@ import java.time.LocalDate
 object LOCApprovalFlow {
     @InitiatingFlow
     @StartableByRPC
-    class Approve(val reference: StateRef) : FlowLogic<SignedTransaction>() {
+    class Approve(val reference: StateRef, val invoiceReference: StateRef) : FlowLogic<SignedTransaction>() {
         companion object {
             object GENERATING_APPROVAL_TRANSACTION : ProgressTracker.Step("Generating LOC transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction.")
@@ -46,11 +47,18 @@ object LOCApprovalFlow {
 
             val builder = TransactionBuilder(notary = notary)
             val appStateAndRef = StateAndRef(state = applicationTxState, ref = reference)
+
+            val invoiceTxState = serviceHub.loadState(invoiceReference)
+            val invoiceStateAndRef = StateAndRef(state = invoiceTxState, ref = invoiceReference)
+
+            //Terminate the invoice If the loc is approved to prevent double spend
+            builder.addInputState(invoiceStateAndRef)
             builder.addInputState(appStateAndRef)
             builder.addOutputState(application.copy(status = LetterOfCreditApplicationStatus.APPROVED), LetterOfCreditApplicationContract.CONTRACT_ID)
             builder.addOutputState(loc, LetterOfCreditContract.CONTRACT_ID)
             builder.addCommand(LetterOfCreditApplicationContract.Commands.Approve(), application.issuer.owningKey)
-            builder.addCommand(LetterOfCreditContract.Commands.Issue(), application.issuer.owningKey)
+            builder.addCommand(LetterOfCreditContract.Commands.Issuance(), application.issuer.owningKey)
+            builder.addCommand(InvoiceContract.Commands.Extinguish(), application.issuer.owningKey)
 
             // Step 2. Add timestamp
             progressTracker.currentStep = SIGNING_TRANSACTION

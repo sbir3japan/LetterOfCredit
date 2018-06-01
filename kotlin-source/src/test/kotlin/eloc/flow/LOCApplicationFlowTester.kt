@@ -64,7 +64,7 @@ class LOCApplicationFlowTester {
                         1.DOLLARS, Weight(3.toDouble(),
                         WeightUnit.KG))))
 
-        val state = InvoiceState(issuerNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), true, invoice)
+        val state = InvoiceState(issuerNode.info.legalIdentities.first(), buyerNode.info.legalIdentities.first(), true, true, invoice)
 
         val future = issuerNode.startFlow(InvoiceFlow.UploadAndSend(buyerNode.info.legalIdentities.first(), state))
                 .toCompletableFuture()

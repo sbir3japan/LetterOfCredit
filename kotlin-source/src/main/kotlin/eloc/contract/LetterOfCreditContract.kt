@@ -1,5 +1,6 @@
 package eloc.contract
 
+import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
@@ -26,13 +27,21 @@ open class LetterOfCreditContract : Contract {
         val command = tx.commands.requireSingleCommand<Commands>()
 
         when (command.value) {
-            is Commands.Issue -> requireThat {
-                val output = tx.outputsOfType<LetterOfCreditState>().single()
-                // confirms the LetterOfCreditApplication is included in the transaction
-                tx.inputsOfType<LetterOfCreditApplicationState>().single()
-                //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
-                "The LOC must be Issued" using (output.status == LetterOfCreditStatus.ISSUED)
-                "The period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
+            is Commands.Issuance -> {
+                requireThat {
+                    val invoice = tx.inputsOfType<InvoiceState>().single()
+                    val output = tx.outputsOfType<LetterOfCreditState>().single()
+                    // confirms the LetterOfCreditApplication is included in the transaction
+                    tx.inputsOfType<LetterOfCreditApplicationState>().single()
+                    requireThat {
+                        "input invoice should not be consumable" using (invoice.isConsumeable == false)
+                        //"the transaction is not signed by the advising bank" by (command.signers.contains(output.props.advisingBank.owningKey))
+                        "the LOC must be Issued" using (output.issued == true)
+                        "Demand Presentation must not be preformed successfully" using (output.beneficiaryPaid == false)
+                        "LOC must not be terminated" using (output.terminated == false)
+                        "the period of presentation must be a positive number" using (!output.props.periodPresentation.isNegative && !output.props.periodPresentation.isZero)
+                    }
+                }
             }
 
             is Commands.Ship -> requireThat {
