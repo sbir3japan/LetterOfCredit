@@ -110,6 +110,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getAllLettersOfCredit() = getAllStatesOfTypeWithHashesAndSigs<LetterOfCreditState>()
 
+    // TODO: Remove this.
     /**
      * Displays all letter-of-credit application states awaiting confirmation that exist in the node's vault.
      */
@@ -189,25 +190,10 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         return Response.accepted().entity("Transaction id ${result.tx.id} committed to ledger.").build()
     }
 
-    // TODO: Modify this end-point so that the application state is built within the flow.
     @POST
     @Path("apply-for-loc")
     fun applyForLoc(loc: LocApplicationData): Response {
-        val beneficiary = rpcOps.partiesFromName(loc.beneficiary, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${loc.beneficiary} not found.").build()
-        val issuing = rpcOps.partiesFromName(loc.issuer, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${loc.issuer} not found.").build()
-        val advising = rpcOps.partiesFromName(loc.advisingBank, exactMatch = false).singleOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${loc.advisingBank} not found.").build()
-
-        val application = LetterOfCreditApplicationState(
-                applicant = me,
-                beneficiary = beneficiary,
-                issuer = issuing,
-                advisingBank = advising,
-                props = loc.toLocApplicationProperties())
-
-        val flowFuture = rpcOps.startFlow(::ApplyForLoCFlow, application).returnValue
+        val flowFuture = rpcOps.startFlow(::ApplyForLoCFlow, loc.beneficiary, loc.issuer, loc.advisingBank, loc.toLocApplicationProperties()).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {

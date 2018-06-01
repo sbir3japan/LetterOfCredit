@@ -3,7 +3,9 @@ package eloc.flow
 import co.paralleluniverse.fibers.Suspendable
 import eloc.contract.InvoiceContract
 import eloc.contract.LetterOfCreditApplicationContract
+import eloc.contract.LetterOfCreditContract
 import eloc.state.InvoiceState
+import eloc.state.LetterOfCreditApplicationProperties
 import eloc.state.LetterOfCreditApplicationState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.FinalityFlow
@@ -19,7 +21,8 @@ import java.time.Instant
 
 @InitiatingFlow
 @StartableByRPC
-class ApplyForLoCFlow(val application: LetterOfCreditApplicationState) : FlowLogic<SignedTransaction>() {
+class ApplyForLoCFlow(val beneficiaryName: String, val issuingBankName: String, val advisingBankName: String,
+                      val applicationProperties: LetterOfCreditApplicationProperties) : FlowLogic<SignedTransaction>() {
     companion object {
         object GENERATING_APPLICATION_TRANSACTION : ProgressTracker.Step("Generating LOC application transaction.")
         object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with our key.")
@@ -31,6 +34,20 @@ class ApplyForLoCFlow(val application: LetterOfCreditApplicationState) : FlowLog
 
     @Suspendable
     override fun call(): SignedTransaction {
+        val beneficiary = serviceHub.identityService.partiesFromName(beneficiaryName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for beneficiary name $beneficiaryName.")
+        val issuingBank = serviceHub.identityService.partiesFromName(issuingBankName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for issuing bank name $issuingBankName.")
+        val advisingBank = serviceHub.identityService.partiesFromName(advisingBankName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for advising bank name $advisingBankName.")
+
+        val application = LetterOfCreditApplicationState(
+                applicant = ourIdentity,
+                beneficiary = beneficiary,
+                issuer = issuingBank,
+                advisingBank = advisingBank,
+                props = applicationProperties)
+
         progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION
         // Step 1. Get a reference to the notary service on our network and our key pair.
         val notary = serviceHub.networkMapCache.notaryIdentities.first()

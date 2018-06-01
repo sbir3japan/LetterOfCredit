@@ -51,6 +51,9 @@ class GoldenPath {
     private val StartedMockNode.party: Party
         get() = info.legalIdentities.first()
 
+    private val StartedMockNode.org: String
+        get() = info.legalIdentities.first().name.organisation
+
     private fun StartedMockNode.runFlow(flow: FlowLogic<SignedTransaction>): SignedTransaction {
         val future = startFlow(flow)
         network.runNetwork()
@@ -100,17 +103,11 @@ class GoldenPath {
     @Test
     fun `travel golden path`() {
         // Creating the invoice.
-        val flow = CreateInvoiceFlow(buyer.party.name.organisation, invoiceProperties)
+        val flow = CreateInvoiceFlow(buyer.org, invoiceProperties)
         seller.runFlow(flow)
 
         // Applying for the letter of credit.
-        val applicationState = LetterOfCreditApplicationState(
-                buyer.party,
-                issuingBank.party,
-                seller.party,
-                advisingBank.party,
-                letterOfCreditApplicationProperties)
-        val flow2 = ApplyForLoCFlow(applicationState)
+        val flow2 = ApplyForLoCFlow(seller.org, issuingBank.org, advisingBank.org, letterOfCreditApplicationProperties)
         buyer.runFlow(flow2)
 
         // Approving the letter of credit.

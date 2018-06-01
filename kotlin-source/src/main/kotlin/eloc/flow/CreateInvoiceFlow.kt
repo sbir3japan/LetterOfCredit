@@ -35,9 +35,8 @@ class CreateInvoiceFlow(val buyerName: String, val invoiceProperties: InvoicePro
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
         progressTracker.currentStep = CREATING_COMPONENTS
-        val buyers = serviceHub.identityService.partiesFromName(buyerName, false)
-        if (buyers.size != 1) throw IllegalArgumentException("${buyers.size} matches found for buyer name $buyerName.")
-        val buyer = buyers.single()
+        val buyer = serviceHub.identityService.partiesFromName(buyerName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for buyer name $buyerName.")
         val invoice = InvoiceState(ourIdentity, buyer, true, invoiceProperties)
         val issueCommand = Command(InvoiceContract.Commands.Issue(), listOf(ourIdentity.owningKey))
 
