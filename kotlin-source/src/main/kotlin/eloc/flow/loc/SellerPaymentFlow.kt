@@ -93,7 +93,7 @@ object SellerPaymentFlow {
             builder.addOutputState(outputStateLoc, LetterOfCreditContract.CONTRACT_ID)
             builder.addOutputState(outputStateBol, BillOfLadingContract.CONTRACT_ID)
             builder.addCommand(LetterOfCreditContract.Commands.PaySeller(), listOf(ourIdentity.owningKey))
-            builder.addCommand(BillOfLadingContract.Commands.Transfer(), ourIdentity.owningKey)
+            builder.addCommand(BillOfLadingContract.Commands.Transfer(), listOf(ourIdentity.owningKey))
 
             // #7 Let's formalise the transaction by verifying and signing
             progressTracker.currentStep = VERIFYING_TRANSACTION

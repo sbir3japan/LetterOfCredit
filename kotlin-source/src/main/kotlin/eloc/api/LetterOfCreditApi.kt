@@ -400,19 +400,23 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         return Response.ok(response, MediaType.APPLICATION_JSON).build()
     }
 
-    private fun processTransaction(stateAndRef: StateAndRef<*>, transactionMap: Map<SecureHash, SignedTransaction>, partyMap: Map<PublicKey, Party>): TransactionSummary {
+    private fun processTransaction(stateAndRef: StateAndRef<*>, transactionMap: Map<SecureHash, SignedTransaction>, partyMap: Map<PublicKey, Party>): TxSummary {
         val state = stateAndRef.state.data
 
         val txId = stateAndRef.ref.txhash.toString()
-        val tx = transactionMap[stateAndRef.ref.txhash]
-                ?: throw IllegalArgumentException("State in vault has no corresponding transaction.")
+        val tx = transactionMap.getOrDefault(stateAndRef.ref.txhash, null)
 
-        val sigsAndSigners = tx.sigs.map { sig -> sig.bytes to partyMap[sig.by]!! }
-        val signatures = sigsAndSigners.map { it.first }
-        val signers = sigsAndSigners.map { it.second }
-
-        return TransactionSummary(txId, signatures, state, signers)
+        // A race-condition could have meant the party was not found.
+        return if (tx != null) {
+            // We fail gracefully if the party could not be mapped.
+            val sigsAndSigners = tx.sigs.map { sig -> sig.bytes to partyMap.getOrDefault(sig.by, null) }
+            val signatures = sigsAndSigners.map { it.first }
+            val signers = sigsAndSigners.map { it.second }
+            TxSummary(txId, signatures, state, signers)
+        } else {
+            TxSummary("", listOf(), null, listOf())
+        }
     }
 }
 
-data class TransactionSummary(val first: String, val second: List<ByteArray>, val third: ContractState, val fourth: List<Party>)
+data class TxSummary(val first: String, val second: List<ByteArray>, val third: ContractState?, val fourth: List<Party?>)

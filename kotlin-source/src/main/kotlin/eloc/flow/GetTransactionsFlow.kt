@@ -1,6 +1,7 @@
 package eloc.flow
 
 import co.paralleluniverse.fibers.Suspendable
+import com.wildfire.state.PledgeState
 import eloc.state.BillOfLadingState
 import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
@@ -33,6 +34,7 @@ class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
     }
 
     private fun mapToStateSubclass(state: ContractState) = when (state) {
+        is PledgeState -> "Central Bank Pledge"
         is InvoiceState -> "Invoice"
         is LetterOfCreditApplicationState -> "Letter Of Credit App. (${state.status})"
         is LetterOfCreditState -> "Letter Of Credit (${state.status})"
