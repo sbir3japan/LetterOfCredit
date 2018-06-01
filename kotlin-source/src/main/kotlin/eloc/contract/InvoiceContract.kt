@@ -35,7 +35,7 @@ class InvoiceContract : Contract {
      *             party signed the contract and that the relevant fields are populated with valid data.
      */
     override fun verify(tx: LedgerTransaction) {
-        val command = tx.commands.requireSingleCommand<Commands.Issue>()
+        val command = tx.commands.requireSingleCommand<Commands>()
 
         val time = Instant.now()
 
@@ -53,7 +53,7 @@ class InvoiceContract : Contract {
                     "there is no input state" using tx.inputsOfType<InvoiceState>().isEmpty()
                     "the transaction is signed by the invoice owner" using (command.signers.contains(issueOutput.owner.owningKey))
                     "the buyer and buyer must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
-                    "the invoice ID must not be blank" using (issueOutput.props.invoiceID.length > 0)
+                    "the invoice ID must not be blank" using (issueOutput.props.invoiceID.isNotEmpty())
                     "the term must be a positive number" using (issueOutput.props.term > 0)
                     "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
                             > time)
@@ -69,8 +69,8 @@ class InvoiceContract : Contract {
                 val invoiceOutput: InvoiceState = tx.outputsOfType<InvoiceState>().single()
 
                 requireThat {
-                    "input invoice must be marked as consumable" using (invoiceInput.isConsumeable == true)
-                    "invoice in the output should be marked as non-consumable" using (invoiceOutput.isConsumeable == false)
+                    "input invoice must be marked as consumable" using (invoiceInput.consumable)
+                    "invoice in the output should be marked as non-consumable" using (!invoiceOutput.consumable)
 
                 }
             }

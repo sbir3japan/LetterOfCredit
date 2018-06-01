@@ -26,7 +26,9 @@ class LetterOfCreditApplicationContract : Contract {
             is Commands.Apply -> requireThat {
                 val output = tx.outputsOfType<LetterOfCreditApplicationState>().single()
                 "the owner must be the applicant" using (output.owner == output.props.applicant)
-                "there is no input state" using tx.inputStates.isEmpty()
+                "there is one input state" using (tx.inputStates.size == 1)
+                // TODO: Additional checks around the input invoice.
+                // TODO: Additional checks around total number of inputs/outputs.
                 "the output status must be pending issuer review" using (output.status == LetterOfCreditApplicationStatus.IN_REVIEW)
             }
             is Commands.Approve -> {

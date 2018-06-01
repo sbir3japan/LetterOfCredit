@@ -5,6 +5,7 @@ import eloc.LetterOfCreditDataStructures.PricedGood
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.crypto.SecureHash
+import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import java.time.LocalDate
@@ -12,11 +13,10 @@ import java.time.LocalDate
 data class InvoiceState(
         val owner: Party,
         val buyer: Party,
-        val assigned: Boolean,
-        val isConsumeable: Boolean,
-        val props: InvoiceProperties) : LinearState {
+        val consumable: Boolean,
+        val props: InvoiceProperties,
+        override val participants: List<AbstractParty> = listOf(owner, buyer)) : LinearState {
     override val linearId = UniqueIdentifier()
-    override val participants = listOf(owner, buyer)
 }
 
 @CordaSerializable

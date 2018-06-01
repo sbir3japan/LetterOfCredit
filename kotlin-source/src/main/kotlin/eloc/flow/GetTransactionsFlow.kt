@@ -35,7 +35,10 @@ class GetTransactionsFlow : FlowLogic<List<TransactionSummary>>() {
 
     private fun mapToStateSubclass(state: ContractState) = when (state) {
         is PledgeState -> "Central Bank Pledge"
-        is InvoiceState -> "Invoice"
+        is InvoiceState -> {
+            val status = if (state.consumable) "UNLOCKED" else "LOCKED"
+            "Invoice ($status)"
+        }
         is LetterOfCreditApplicationState -> "Letter Of Credit App. (${state.status})"
         is LetterOfCreditState -> "Letter Of Credit (${state.status})"
         is BillOfLadingState -> "Bill Of Lading"

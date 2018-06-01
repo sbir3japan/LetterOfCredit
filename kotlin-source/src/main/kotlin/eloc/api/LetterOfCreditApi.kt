@@ -1,14 +1,10 @@
 package eloc.api
 
-import eloc.flow.GetTransactionsFlow
-import eloc.flow.LOCApplicationFlow.Apply
-import eloc.flow.LOCApprovalFlow
-import eloc.flow.documents.BillOfLadingFlow
-import eloc.flow.documents.InvoiceFlow
+import eloc.flow.*
 import eloc.flow.loc.AdvisoryPaymentFlow
 import eloc.flow.loc.IssuerPaymentFlow
 import eloc.flow.loc.SellerPaymentFlow
-import eloc.flow.loc.ShippingFlow
+import eloc.flow.loc.ShipFlow
 import eloc.state.*
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
@@ -192,12 +188,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @POST
     @Path("create-trade")
     fun createTrade(invoice: InvoiceData): Response {
-        val buyer = rpcOps.partiesFromName(invoice.buyerName, exactMatch = false).firstOrNull()
-                ?: return Response.status(BAD_REQUEST).entity("${invoice.buyerName} not found.").build()
-
-        val state = InvoiceState(me, buyer, true, true, invoice.toInvoiceProperties())
-
-        val flowFuture = rpcOps.startFlow(InvoiceFlow::UploadAndSend, buyer, state).returnValue
+        val flowFuture = rpcOps.startFlow(::CreateInvoiceFlow, invoice.buyerName, invoice.toInvoiceProperties()).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -221,10 +212,9 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
                 owner = me,
                 issuer = issuing,
                 status = LetterOfCreditApplicationStatus.IN_REVIEW,
-                props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising),
-                purchaseOrder = null)
+                props = loc.toLocApplicationProperties(me, beneficiary, issuing, advising))
 
-        val flowFuture = rpcOps.startFlow(::Apply, application).returnValue
+        val flowFuture = rpcOps.startFlow(::ApplyForLoCFlow, application).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -245,7 +235,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
             it.ref.txhash.toString() == ref
         }
 
-        val flowFuture = rpcOps.startFlow(LOCApprovalFlow::Approve, stateAndRef.ref,invoicestateAndRef.ref).returnValue
+        val flowFuture = rpcOps.startFlow(::ApproveLoCFlow, stateAndRef.ref,invoicestateAndRef.ref).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -267,7 +257,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
 
         val state = BillOfLadingState(me, me, buyer, advisingBank, issuingBank, Instant.now(), billOfLading.toBillOfLadingProperties(me))
 
-        val flowFuture = rpcOps.startFlow(BillOfLadingFlow::UploadAndSend, state).returnValue
+        val flowFuture = rpcOps.startFlow(::CreateBoLFlow, state).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -280,7 +270,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("ship")
     fun ship(@QueryParam(value = "ref") ref: String): Response {
-        val flowFuture = rpcOps.startFlow(ShippingFlow::Ship, ref).returnValue
+        val flowFuture = rpcOps.startFlow(::ShipFlow, ref).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {

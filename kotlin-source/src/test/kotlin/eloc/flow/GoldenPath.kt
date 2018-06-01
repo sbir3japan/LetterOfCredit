@@ -7,8 +7,10 @@ import eloc.LetterOfCreditDataStructures.Port
 import eloc.LetterOfCreditDataStructures.PricedGood
 import eloc.LetterOfCreditDataStructures.Weight
 import eloc.LetterOfCreditDataStructures.WeightUnit.KG
-import eloc.flow.documents.InvoiceFlow
-import eloc.state.*
+import eloc.state.InvoiceProperties
+import eloc.state.LetterOfCreditApplicationProperties
+import eloc.state.LetterOfCreditApplicationState
+import eloc.state.LetterOfCreditApplicationStatus
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
@@ -65,7 +67,6 @@ class GoldenPath {
                         )
                 ),
                 documentsRequired = listOf(),
-                invoiceRef = StateRef(SecureHash.randomSHA256(), 0),
                 amount = 30000.DOLLARS
         )
     }
@@ -106,8 +107,7 @@ class GoldenPath {
     @Test
     fun `travel golden path`() {
         // Creating the invoice.
-        val invoiceState = InvoiceState(seller.party, buyer.party, true, invoiceProperties)
-        val flow = InvoiceFlow.UploadAndSend(buyer.party, invoiceState)
+        val flow = CreateInvoiceFlow(buyer.party.name.toString(), invoiceProperties)
         seller.runFlow(flow)
 
         // Applying for the letter of credit.
@@ -115,15 +115,14 @@ class GoldenPath {
                 buyer.party,
                 issuingBank.party,
                 LetterOfCreditApplicationStatus.IN_REVIEW,
-                letterOfCreditApplicationProperties,
-                null)
-        val flow2 = LOCApplicationFlow.Apply(applicationState)
+                letterOfCreditApplicationProperties)
+        val flow2 = ApplyForLoCFlow(applicationState)
         val applicationTx = buyer.runFlow(flow2)
 
         // Approving the letter of credit.
         // TODO: Too brittle. Retrieve the state ref from the vault.
         val applicationStateRef = StateRef(applicationTx.id, 0)
-        val flow3 = LOCApprovalFlow.Approve(applicationStateRef)
+        val flow3 = ApproveLoCFlow(applicationStateRef, TODO())
         issuingBank.runFlow(flow3)
 
         // Adding the bill of lading.

@@ -15,8 +15,7 @@ data class LetterOfCreditApplicationState(
         val owner: Party,
         val issuer: Party,
         val status: LetterOfCreditApplicationStatus,
-        val props: LetterOfCreditApplicationProperties,
-        val purchaseOrder: Attachment?) : LinearState {
+        val props: LetterOfCreditApplicationProperties) : LinearState {
     override val participants = listOf( owner, issuer )
     override val linearId = UniqueIdentifier(props.letterOfCreditApplicationID)
 }
@@ -38,7 +37,6 @@ data class LetterOfCreditApplicationProperties(
         val periodPresentation: Period,
         val descriptionGoods: List<PricedGood> = ArrayList(),
         val documentsRequired: List<String> = ArrayList(),
-        val invoiceRef: StateRef,
         val amount: Amount<Currency>)
 
 @CordaSerializable

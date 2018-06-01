@@ -114,7 +114,6 @@ data class LocApplicationData(
                         Amount(goodsUnitPrice.toLong(), Amount.parseCurrency(amount).token),
                         Weight(goodsWeight.toDouble(), WeightUnit.valueOf(goodsWeightUnit)))),
                 documentsRequired = ArrayList(),
-                invoiceRef = StateRef(SecureHash.randomSHA256(), 0),
                 amount = Amount.parseCurrency(amount))
     }
 }
