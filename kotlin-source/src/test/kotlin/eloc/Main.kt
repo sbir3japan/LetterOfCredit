@@ -48,7 +48,7 @@ fun main(args: Array<String>) {
                     startWebserver(node)
                 }
 
-                val regularNodeNames = listOf("O=Analog Importers,L=Liverpool,C=FR", "O=Lok Ma Exporters,L=Shenzhen,C=HK", "O=Central Bank of Corda,L=New York,C=US")
+                val regularNodeNames = listOf("O=Analog Importers,L=Liverpool,C=FR", "O=Lok Ma Exporters,L=Shenzhen,C=HK", "O=Central Bank,L=New York,C=US")
                 regularNodeNames.forEach { name ->
                     val node = startNode(providedName = CordaX500Name.parse(name), rpcUsers = rpcUserList).get()
                     startWebserver(node)

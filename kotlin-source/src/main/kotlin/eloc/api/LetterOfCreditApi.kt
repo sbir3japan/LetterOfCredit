@@ -406,7 +406,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val txId = stateAndRef.ref.txhash.toString()
         val tx = transactionMap.getOrDefault(stateAndRef.ref.txhash, null)
 
-        // A race-condition could have meant the party was not found.
+        // A race-condition could have meant the transaction was not found.
         return if (tx != null) {
             // We fail gracefully if the party could not be mapped.
             val sigsAndSigners = tx.sigs.map { sig -> sig.bytes to partyMap.getOrDefault(sig.by, null) }
