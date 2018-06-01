@@ -36,7 +36,7 @@ class CreateInvoiceFlow(val buyerName: String, val invoiceProperties: InvoicePro
 
         progressTracker.currentStep = CREATING_COMPONENTS
         val buyers = serviceHub.identityService.partiesFromName(buyerName, false)
-        if (buyers.size != 1) throw IllegalArgumentException("Buyer not found.")
+        if (buyers.size != 1) throw IllegalArgumentException("${buyers.size} matches found for buyer name $buyerName.")
         val buyer = buyers.single()
         val invoice = InvoiceState(ourIdentity, buyer, true, invoiceProperties)
         val issueCommand = Command(InvoiceContract.Commands.Issue(), listOf(ourIdentity.owningKey))

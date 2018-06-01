@@ -13,6 +13,7 @@ import eloc.state.LetterOfCreditApplicationState
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
+import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
@@ -36,10 +37,10 @@ class GoldenPath {
     @Before
     fun setup() {
         network = MockNetwork(listOf("eloc.contract", "net.corda.finance.contracts.asset"))
-        seller = network.createPartyNode()
-        buyer = network.createPartyNode()
-        issuingBank = network.createPartyNode()
-        advisingBank = network.createPartyNode()
+        seller = network.createPartyNode(CordaX500Name.parse("O=Lok Ma Exporters,L=Shenzhen,C=CN"))
+        buyer = network.createPartyNode(CordaX500Name.parse("O=Analog Importers,L=Liverpool,C=GB"))
+        issuingBank = network.createPartyNode(CordaX500Name.parse("O=First Bank of London,L=London,C=GB"))
+        advisingBank = network.createPartyNode(CordaX500Name.parse("O=Shenzhen State Bank,L=Shenzhen,C=CN"))
         network.runNetwork()
 
         letterOfCreditApplicationProperties = LetterOfCreditApplicationProperties(
@@ -84,7 +85,6 @@ class GoldenPath {
         return future.getOrThrow()
     }
 
-    // TODO: Update these to reflect latest front-end autocomplete.
     private val invoiceProperties = InvoiceProperties(
             invoiceID = "123",
             seller = Company("Lok Ma Exporters", "123 Main St. Shenzhen, China", ""),
@@ -106,7 +106,7 @@ class GoldenPath {
     @Test
     fun `travel golden path`() {
         // Creating the invoice.
-        val flow = CreateInvoiceFlow(buyer.party.name.toString(), invoiceProperties)
+        val flow = CreateInvoiceFlow(buyer.party.name.organisation, invoiceProperties)
         seller.runFlow(flow)
 
         // Applying for the letter of credit.
@@ -115,12 +115,10 @@ class GoldenPath {
                 issuingBank.party,
                 letterOfCreditApplicationProperties)
         val flow2 = ApplyForLoCFlow(applicationState)
-        val applicationTx = buyer.runFlow(flow2)
+        buyer.runFlow(flow2)
 
         // Approving the letter of credit.
-        // TODO: Too brittle. Retrieve the state ref from the vault.
-        val applicationStateRef = StateRef(applicationTx.id, 0)
-        val flow3 = ApproveLoCFlow(applicationStateRef, TODO())
+        val flow3 = ApproveLoCFlow(letterOfCreditApplicationProperties.letterOfCreditApplicationID)
         issuingBank.runFlow(flow3)
 
         // Adding the bill of lading.

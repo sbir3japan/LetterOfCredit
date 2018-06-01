@@ -217,15 +217,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("approve-loc")
     fun approveLetterOfCreditApplication(@QueryParam(value = "ref") ref: String): Response {
-        val stateAndRef = rpcOps.vaultQueryBy<LetterOfCreditApplicationState>().states.first {
-            it.ref.txhash.toString() == ref
-        }
-
-        val invoicestateAndRef = rpcOps.vaultQueryBy<InvoiceState>().states.first {
-            it.ref.txhash.toString() == ref
-        }
-
-        val flowFuture = rpcOps.startFlow(::ApproveLoCFlow, stateAndRef.ref,invoicestateAndRef.ref).returnValue
+        val flowFuture = rpcOps.startFlow(::ApproveLoCFlow, ref).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
