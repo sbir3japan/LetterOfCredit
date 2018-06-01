@@ -109,9 +109,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        // TODO: Should be in GB. Workaround for Wildfire bug,
-        // TODO: where nodes in the same country overwrite each other.
-        name "O=Analog Importers,L=Liverpool,C=FR"
+        name "O=Analog Importers,L=Liverpool,C=GB"
         p2pPort 10011
         rpcSettings {
             address("localhost:10012")
@@ -125,9 +123,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         ]
     }
     node {
-        // TODO: Should be in CN. Workaround for Wildfire bug,
-        // TODO: where nodes in the same country overwrite each other.
-        name "O=Lok Ma Exporters,L=Shenzhen,C=HK"
+        name "O=Lok Ma Exporters,L=Shenzhen,C=CN"
         p2pPort 10014
         rpcSettings {
             address("localhost:10015")
