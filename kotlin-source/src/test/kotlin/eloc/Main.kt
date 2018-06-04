@@ -54,7 +54,6 @@ fun main(args: Array<String>) {
                 val seller = startNode(providedName = CordaX500Name.parse("O=Lok Ma Exporters,L=Shenzhen,C=CN"), rpcUsers = rpcUserList).get()
                 startWebserver(seller)
                 val centralBank = startNode(providedName = CordaX500Name.parse("O=Central Bank,L=New York,C=US"), rpcUsers = rpcUserList).get()
-                startWebserver(centralBank)
 
                 val pledgeNonceOne = pledgeTenMillion(bankOne, centralBank)
                 val pledgeNonceTwo = pledgeTenMillion(bankTwo, centralBank)
