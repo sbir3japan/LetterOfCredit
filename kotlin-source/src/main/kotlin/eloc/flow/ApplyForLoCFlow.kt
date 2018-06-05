@@ -68,7 +68,7 @@ class ApplyForLoCFlow(val beneficiaryName: String, val issuingBankName: String, 
         builder.addInputState(invoiceStateAndRef)
 
         //Step5. Add invoice state to the output with Issuing Bank as a participant
-        val outputInvoiceState = invoiceStateAndRef.state.data.copy(participants = listOf(invoiceStateAndRef.state.data.buyer, application.issuer), consumable = false)
+        val outputInvoiceState = invoiceStateAndRef.state.data.copy(participants = invoiceStateAndRef.state.data.participants +  application.issuer, consumable = false)
         builder.addOutputState(outputInvoiceState, InvoiceContract.CONTRACT_ID)
         builder.addCommand(invoiceCommand)
 
