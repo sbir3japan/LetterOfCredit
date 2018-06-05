@@ -11,7 +11,7 @@ This is a CorDapp that uses a letter-of-credit business scenario to showcase Cor
 
 ## Interacting with the nodes:
 
-Once all the nodes are started, go to `localhost:10007`.
+Once all the nodes are started, go to `localhost:10007`
 
 ## Update process (development only)
 
@@ -19,6 +19,6 @@ Once all the nodes are started, go to `localhost:10007`.
 
 If the [front-end](https://github.com/corda/LetterOfCreditWeb) has been modified, it needs to be redeployed onto the nodes. You do this by
 
-* Building the project by running `ng build --prod --aot --build-optimizer --base-href="/web/loc/"` from the root of the project
+* Building the [front-end](https://github.com/corda/LetterOfCreditWeb) project by running `ng build --prod --aot --build-optimizer --base-href="/web/loc/"` from the root of the project
 * Navigate to the newly created 'dist' folder within the root of the front-end project
 * Copy the entire contents of the 'dist' folder into the CorDapp project at 'LetterOfCredit\kotlin-source\src\main\resources\loc'
