@@ -37,7 +37,9 @@ import javax.ws.rs.core.Response.Status.BAD_REQUEST
 class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     private val me = rpcOps.nodeInfo().legalIdentities.first()
     private val myLegalName = me.name
-    private val SERVICE_NODE_NAMES = listOf(CordaX500Name("Notary Pool", "London", "GB"))
+    private val SERVICE_NODE_NAME = CordaX500Name("Notary Pool", "London", "GB")
+    private val CENTRAL_BANK_NAME = CordaX500Name("Central Bank", "New York", "US")
+
     /**
      * Returns the node's name.
      */
@@ -56,7 +58,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
         val nodeInfo = rpcOps.networkMapSnapshot()
         return mapOf("peers" to nodeInfo
                 .map { it.legalIdentities.first().name }
-                .filter { it != myLegalName && it !in SERVICE_NODE_NAMES })
+                .filter { it !in listOf(myLegalName, SERVICE_NODE_NAME, CENTRAL_BANK_NAME) })
     }
 
     /**
