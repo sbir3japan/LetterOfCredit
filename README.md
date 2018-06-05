@@ -19,6 +19,6 @@ Once all the nodes are started, go to `localhost:10007/map`.
 
 If the [front-end](https://github.com/corda/LetterOfCreditWeb) has been modified, it needs to be redeployed onto the nodes. You do this by
 
-* Building the project by running ng build --prod --aot --build-optimizer --base-href="/web/loc/"
-* Navigate to the newly created 'dist' folder within the root of the front-end project.
+* Building the project by running `ng build --prod --aot --build-optimizer --base-href="/web/loc/"` from the root of the project
+* Navigate to the newly created 'dist' folder within the root of the front-end project
 * Copy the entire contents of the 'dist' folder into the CorDapp project at 'LetterOfCredit\kotlin-source\src\main\resources\loc'
