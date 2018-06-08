@@ -7,7 +7,7 @@ This is a CorDapp that uses a letter-of-credit business scenario to showcase Cor
 ## Running the nodes:
 
 * Create the node driver by running `./gradlew buildExecutableJar` (osX) or `gradlew buildExecutableJar` (Windows)
-* Run the node driver using `java -Xmx8192m -jar kotlin-source/build/libs/eloc-demo.jar`
+* Run the node driver using `java -jar kotlin-source/build/libs/eloc-demo.jar`
 
 ## Interacting with the nodes:
 
