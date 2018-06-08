@@ -9,6 +9,8 @@ This is a CorDapp that uses a letter-of-credit business scenario to showcase Cor
 * Create the node driver by running `./gradlew buildExecutableJar` (osX) or `gradlew buildExecutableJar` (Windows)
 * Run the node driver using `java -jar kotlin-source/build/libs/eloc-demo.jar`
 
+If you receive error messages that say `Exception in thread "main" java.net.BindException: Address already in use`, you have zombie Java processes. You can kill them using `killall java -9` on osX, or `wmic process where "name like '%java%'" delete` on Windows.
+
 ## Interacting with the nodes:
 
 Once all the nodes are started, go to `http://localhost:10014/web/loc/`.
