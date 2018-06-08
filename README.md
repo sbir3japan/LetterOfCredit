@@ -11,7 +11,7 @@ This is a CorDapp that uses a letter-of-credit business scenario to showcase Cor
 
 ## Interacting with the nodes:
 
-Once all the nodes are started, go to `localhost:10007`
+Once all the nodes are started, go to `http://localhost:10014/web/loc/`
 
 ## Update process (development only)
 
