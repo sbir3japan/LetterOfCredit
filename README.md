@@ -36,4 +36,4 @@ If the [front-end](https://github.com/corda/LetterOfCreditWeb) has been modified
 * Make the changes
 * From the root of the project, run `yarn run deploy`
 * Rename the `kotlin-source-0.1.jar` file in `kotlin-source/build/libs` to `wildfire.jar`
-* Copy `wildfire.jar` into the `lib` folder in the root of the `LetterOfCredit` project
+* Copy `wildfire.jar` into the `lib` folder in the root of the `LetterOfCredit` project, overwriting the existing file
