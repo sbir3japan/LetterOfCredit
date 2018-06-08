@@ -1,12 +1,12 @@
 package eloc
 
-import com.wildfire.contract.PledgeContract
 import com.wildfire.flow.CashFlow.Issue
 import com.wildfire.flow.PledgeFlow.InitiatePledge
 import com.wildfire.state.PledgeState
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.messaging.startFlow
 import net.corda.core.utilities.getOrThrow
+import net.corda.core.utilities.loggerFor
 import net.corda.finance.DOLLARS
 import net.corda.finance.issuedBy
 import net.corda.testing.common.internal.testNetworkParameters
@@ -16,27 +16,13 @@ import net.corda.testing.driver.PortAllocation
 import net.corda.testing.driver.driver
 import net.corda.testing.node.NotarySpec
 import net.corda.testing.node.User
+import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 
-private object CustomPortAllocation : PortAllocation() {
-    private val index = AtomicInteger(0)
-
-    private val portList = listOf(
-            10002, 10003, 10040, 10004,
-            10005, 10006, 10041, 10007,
-            10008, 10009, 10042, 10010,
-            10011, 10012, 10043, 10013,
-            10014, 10015, 10044, 10016,
-            10017, 10018, 10045, 10019)
-
-    override fun nextPort(): Int {
-        return portList[index.andIncrement]
-    }
-}
-
 fun main(args: Array<String>) {
+    val logger = LoggerFactory.getLogger("eloc.DriverKt")
+
     driver(DriverParameters(
-            portAllocation = CustomPortAllocation,
             startNodesInProcess = true,
             waitForAllNodesToFinish = true,
             extraCordappPackagesToScan = listOf("net.corda.finance.contracts.asset", "net.corda.finance.schemas", "com.wildfire.contract"),
@@ -45,21 +31,23 @@ fun main(args: Array<String>) {
             dsl = {
                 val rpcUserList = listOf(User("user1", "test", permissions = setOf("ALL")))
 
-                val bankOne = startNode(providedName = CordaX500Name.parse("O=First Bank of London,L=London,C=GB"), rpcUsers = rpcUserList).get()
-                startWebserver(bankOne)
-                val bankTwo = startNode(providedName = CordaX500Name.parse("O=Shenzhen State Bank,L=Shenzhen,C=CN"), rpcUsers = rpcUserList).get()
-                startWebserver(bankTwo)
-                val buyer = startNode(providedName = CordaX500Name.parse("O=Analog Importers,L=Liverpool,C=GB"), rpcUsers = rpcUserList).get()
-                startWebserver(buyer)
-                val seller = startNode(providedName = CordaX500Name.parse("O=Lok Ma Exporters,L=Shenzhen,C=CN"), rpcUsers = rpcUserList).get()
-                startWebserver(seller)
-                val centralBank = startNode(providedName = CordaX500Name.parse("O=Central Bank,L=New York,C=US"), rpcUsers = rpcUserList).get()
+                val names =
+                        listOf("O=First Bank of London,L=London,C=GB", "O=Shenzhen State Bank,L=Shenzhen,C=CN", "O=Analog Importers,L=Liverpool,C=GB", "O=Lok Ma Exporters,L=Shenzhen,C=CN", "O=Central Bank,L=New York,C=US")
+
+                val (bankOneFuture, bankTwoFuture, buyerFuture, sellerFuture, centralBankFuture) =
+                        names.map { name -> startNode(providedName = CordaX500Name.parse(name), rpcUsers = rpcUserList) }
+
+                val (bankOne, bankTwo, buyer, seller, centralBank) =
+                        listOf(bankOneFuture, bankTwoFuture, buyerFuture, sellerFuture, centralBankFuture).map { future -> future.get() }
 
                 val pledgeNonceOne = pledgeTenMillion(bankOne, centralBank)
                 val pledgeNonceTwo = pledgeTenMillion(bankTwo, centralBank)
-
                 confirmPledge(centralBank, pledgeNonceOne)
                 confirmPledge(centralBank, pledgeNonceTwo)
+
+                listOf(bankOne, bankTwo, buyer, seller, centralBank).map { node -> startWebserver(node) }.map { future -> future.get() }
+
+                logger.info("Nodes started. Start the demo by going to http://localhost:10014/web/loc/.")
             })
 }
 

@@ -36,6 +36,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
     testCompile "junit:junit:$junit_version"
+
     // Corda integration dependencies
     cordaCompile "net.corda:corda-core:$corda_release_version"
     cordaCompile "net.corda:corda-finance:$corda_release_version"
@@ -162,7 +163,7 @@ task testJar(type: Jar) {
 }
 
 task buildExecutableJar(type: FatCapsule, dependsOn: [jar, testJar]) {
-    applicationClass 'eloc.MainKt'
+    applicationClass 'eloc.DriverKt'
     archiveName "eloc-demo.jar"
     applicationSource = files(
             configurations.runtime,
@@ -175,7 +176,7 @@ task buildExecutableJar(type: FatCapsule, dependsOn: [jar, testJar]) {
         def quasarExcludeExpression = "x(antlr**;bftsmart**;ch**;co.paralleluniverse**;com.codahale**;com.esotericsoftware**;com.fasterxml**;com.google**;com.ibm**;com.intellij**;com.jcabi**;com.nhaarman**;com.opengamma**;com.typesafe**;com.zaxxer**;de.javakaffee**;groovy**;groovyjarjarantlr**;groovyjarjarasm**;io.atomix**;io.github**;io.netty**;jdk**;joptsimple**;junit**;kotlin**;net.bytebuddy**;net.i2p**;org.apache**;org.assertj**;org.bouncycastle**;org.codehaus**;org.crsh**;org.dom4j**;org.fusesource**;org.h2**;org.hamcrest**;org.hibernate**;org.jboss**;org.jcp**;org.joda**;org.junit**;org.mockito**;org.objectweb**;org.objenesis**;org.slf4j**;org.w3c**;org.xml**;org.yaml**;reflectasm**;rx**;org.jolokia**)"
         javaAgents = ["quasar-core-${quasar_version}-jdk8.jar=${quasarExcludeExpression}"]
         minJavaVersion = '1.8.0'
-        jvmArgs = ['-Xmx512m', '-XX:+UseG1GC']
+        jvmArgs = ['-Xmx8192m', '-XX:+UseG1GC']
     }
 
     // Makes the JAR executable by clicking it, but it starts in the background :(
