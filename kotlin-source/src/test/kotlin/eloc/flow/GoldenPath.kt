@@ -60,7 +60,7 @@ class GoldenPath {
             purchaseOrderID = "123",
             seller = Company("Lok Ma Exporters", "123 Main St. Shenzhen, China", ""),
             buyer = Company("Analog Importers", "3 Smithdown Road. Liverpool, L2 6RE", ""),
-            invoiceDate = LocalDate.now(),
+            purchaseOrderDate = LocalDate.now(),
             term = 5,
             goods = listOf(
                     PricedGood(

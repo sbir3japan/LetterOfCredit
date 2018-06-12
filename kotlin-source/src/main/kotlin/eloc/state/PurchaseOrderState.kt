@@ -24,8 +24,8 @@ data class PurchaseOrderProperties(
         val purchaseOrderID: String,
         val seller: Company,
         val buyer: Company,
-        val invoiceDate: LocalDate,
+        val purchaseOrderDate: LocalDate,
         val term: Long,
         val goods: List<PricedGood>) {
-    val payDate = invoiceDate.plusDays(term)
+    val payDate = purchaseOrderDate.plusDays(term)
 }
