@@ -1,9 +1,9 @@
 package eloc.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.InvoiceContract
 import eloc.contract.LetterOfCreditApplicationContract
 import eloc.contract.LetterOfCreditContract
+import eloc.contract.PurchaseOrderContract
 import eloc.state.*
 import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowLogic
@@ -19,36 +19,28 @@ import java.time.LocalDate
 @InitiatingFlow
 @StartableByRPC
 class ApproveLoCFlow(val reference: String) : FlowLogic<SignedTransaction>() {
-    companion object {
-        object GENERATING_APPROVAL_TRANSACTION : ProgressTracker.Step("Generating LOC transaction.")
-        object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction.")
-        object FINALIZING : ProgressTracker.Step("Recording and distributing transaction.")
 
-        fun tracker() = ProgressTracker(
-                GENERATING_APPROVAL_TRANSACTION,
-                SIGNING_TRANSACTION,
-                FINALIZING
-        )
-    }
-
-    override val progressTracker = tracker()
+    override val progressTracker = ProgressTracker(GETTING_NOTARY, GENERATING_TRANSACTION, VERIFYING_TRANSACTION,
+            SIGNING_TRANSACTION, FINALISING_TRANSACTION)
 
     @Suspendable
     override fun call(): SignedTransaction {
+        progressTracker.currentStep = GETTING_NOTARY
+        val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+        progressTracker.currentStep = GENERATING_TRANSACTION
         val applicationStateAndRef = serviceHub.vaultService.queryBy<LetterOfCreditApplicationState>().states.find {
             it.state.data.props.letterOfCreditApplicationID == reference
         } ?: throw IllegalArgumentException("No letter-of-credit application with ID $reference found.")
 
-        val invoiceStateAndRef = serviceHub.vaultService.queryBy<InvoiceState>().states.find {
+        val purchaseOrderStateAndRef = serviceHub.vaultService.queryBy<PurchaseOrderState>().states.find {
             it.state.data.props.invoiceID == reference
-        } ?: throw IllegalArgumentException("No invoice with ID $reference found.")
+        } ?: throw IllegalArgumentException("No purchase order with ID $reference found.")
 
         val application = applicationStateAndRef.state.data
-        // Step 1. Generate transaction
-        progressTracker.currentStep = GENERATING_APPROVAL_TRANSACTION
+
         val locProps = LetterOfCreditProperties(application.props, LocalDate.now())
 
-        val notary = serviceHub.networkMapCache.notaryIdentities.first()
         val loc = LetterOfCreditState(
                 application.beneficiary,
                 application.advisingBank,
@@ -59,25 +51,23 @@ class ApproveLoCFlow(val reference: String) : FlowLogic<SignedTransaction>() {
 
         val builder = TransactionBuilder(notary = notary)
                 .addInputState(applicationStateAndRef)
-                .addInputState(invoiceStateAndRef)
+                .addInputState(purchaseOrderStateAndRef)
                 .addOutputState(loc, LetterOfCreditContract.CONTRACT_ID)
                 .addCommand(LetterOfCreditApplicationContract.Commands.Approve(), ourIdentity.owningKey)
                 .addCommand(LetterOfCreditContract.Commands.Issue(), ourIdentity.owningKey)
-                .addCommand(InvoiceContract.Commands.Extinguish(), ourIdentity.owningKey)
+                .addCommand(PurchaseOrderContract.Commands.Extinguish(), ourIdentity.owningKey)
 
-        // Step 2. Add timestamp
         progressTracker.currentStep = SIGNING_TRANSACTION
         val currentTime = serviceHub.clock.instant()
         builder.setTimeWindow(currentTime, 30.seconds)
 
-        // Step 3. Verify transaction
+        progressTracker.currentStep = VERIFYING_TRANSACTION
         builder.verify(serviceHub)
 
-        // Step 4. Sign transaction
-        progressTracker.currentStep = FINALIZING
+        progressTracker.currentStep = SIGNING_TRANSACTION
         val stx = serviceHub.signInitialTransaction(builder)
 
-        // Step 5. Assuming no exceptions, we can now finalise the transaction.
+        progressTracker.currentStep = FINALISING_TRANSACTION
         return subFlow(FinalityFlow(stx))
     }
 }

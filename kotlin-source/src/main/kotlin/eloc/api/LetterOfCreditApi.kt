@@ -6,9 +6,9 @@ import eloc.flow.loc.IssuerPaymentFlow
 import eloc.flow.loc.SellerPaymentFlow
 import eloc.flow.loc.ShipFlow
 import eloc.state.BillOfLadingState
-import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
 import eloc.state.LetterOfCreditState
+import eloc.state.PurchaseOrderState
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
@@ -26,7 +26,6 @@ import net.corda.finance.DOLLARS
 import net.corda.finance.contracts.getCashBalances
 import java.security.PublicKey
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.util.*
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
@@ -89,12 +88,12 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     }
 
     /**
-     * Displays all invoice states that exist in the node's vault.
+     * Displays all purchase order states that exist in the node's vault.
      */
     @GET
     @Path("invoices")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getInvoices() = getAllStatesOfTypeWithHashesAndSigs<InvoiceState>()
+    fun getPurchaseOrders() = getAllStatesOfTypeWithHashesAndSigs<PurchaseOrderState>()
 
     /**
      * Displays all Letter-of-credit application states that exist in the node's vault.
@@ -122,13 +121,13 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     fun getAwaitingApprovalLettersOfCredit() = getAllStatesOfTypeWithHashesAndSigs<LetterOfCreditApplicationState>()
 
     /**
-     * Fetches invoice state that matches ref from the node's vault.
+     * Fetches the purchase order state that matches ref from the node's vault.
      */
     @GET
     @Path("get-invoice")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getInvoice(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<InvoiceState> -> stateAndRef.state.data.props.invoiceID == ref }
+    fun getPurchaseOrder(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
+            { stateAndRef: StateAndRef<PurchaseOrderState> -> stateAndRef.state.data.props.invoiceID == ref }
     )
 
     /**
@@ -181,8 +180,8 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
 
     @POST
     @Path("create-trade")
-    fun createTrade(invoice: InvoiceData): Response {
-        val flowFuture = rpcOps.startFlow(::CreateInvoiceFlow, invoice.buyerName, invoice.toInvoiceProperties()).returnValue
+    fun createTrade(invoice: PurchaseOrderData): Response {
+        val flowFuture = rpcOps.startFlow(::CreatePurchaseOrderFlow, invoice.buyerName, invoice.toPurchaseOrderProperties()).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -247,7 +246,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("pay-seller")
     fun paySeller(@QueryParam(value = "locId") locId: String): Response {
-        val flowFuture = rpcOps.startFlow(SellerPaymentFlow::MakePayment, locId).returnValue
+        val flowFuture = rpcOps.startFlow(::SellerPaymentFlow, locId).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -260,7 +259,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("pay-adviser")
     fun payAdviser(@QueryParam(value = "locId") locId: String): Response {
-        val flowFuture = rpcOps.startFlow(AdvisoryPaymentFlow::MakePayment, locId).returnValue
+        val flowFuture = rpcOps.startFlow(::AdvisoryPaymentFlow, locId).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {
@@ -273,7 +272,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("pay-issuer")
     fun payIssuer(@QueryParam(value = "locId") locId: String): Response {
-        val flowFuture = rpcOps.startFlow(IssuerPaymentFlow::MakePayment, locId).returnValue
+        val flowFuture = rpcOps.startFlow(::IssuerPaymentFlow, locId).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {

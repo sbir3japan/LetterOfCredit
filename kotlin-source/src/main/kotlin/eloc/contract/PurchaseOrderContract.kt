@@ -1,32 +1,31 @@
 package eloc.contract
 
-import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
+import eloc.state.PurchaseOrderState
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 import java.time.Instant
 import java.time.ZoneOffset
 
 /**
- * An invoice is a document that describes a trade between a buyer and a buyer. It is issued on a particular date,
- * it lists goods being sold by the buyer, the cost of each good and the total amount owed by the buyer and when
+ * An purchase order is a document that describes a trade between a buyer and a buyer. It is issued on a particular
+ * date, it lists goods being sold by the buyer, the cost of each good and the total amount owed by the buyer and when
  * the buyer expects to be paid by.
  *
- * In the trade finance world, invoices are used to create other contracts (for example AccountsReceivable), newly
- * created invoices start off with a status of "unassigned", once they're used to create other contracts the status
- * is changed to "assigned". This ensures that an invoice is used only once when creating a financial product like
- * AccountsReceivable.
- *
+ * In the trade finance world, purchase orders are used to create other contracts (for example AccountsReceivable),
+ * newly created purchase orders start off with a status of "unassigned", once they're used to create other contracts
+ * the status is changed to "assigned". This ensures that an invoice is used only once when creating a financial
+ * product like AccountsReceivable.
  */
-class InvoiceContract : Contract {
+class PurchaseOrderContract : Contract {
     companion object {
         @JvmStatic
-        val CONTRACT_ID = "eloc.contract.InvoiceContract"
+        val CONTRACT_ID = "eloc.contract.PurchaseOrderContract"
     }
 
     interface Commands : CommandData {
         class Issue : TypeOnlyCommandData(), Commands
-        class LockInvoice : TypeOnlyCommandData(), Commands
+        class LockPurchaseOrder : TypeOnlyCommandData(), Commands
         class Extinguish : TypeOnlyCommandData(), Commands
     }
 
@@ -47,10 +46,10 @@ class InvoiceContract : Contract {
                             "one output invoice state should be include in the transaction. " +
                             "Number of output states included was " + tx.outputs.size)
                 }
-                val issueOutput: InvoiceState = tx.outputsOfType<InvoiceState>().single()
+                val issueOutput = tx.outputsOfType<PurchaseOrderState>().single()
 
                 requireThat {
-                    "there is no input state" using tx.inputsOfType<InvoiceState>().isEmpty()
+                    "there is no input state" using tx.inputsOfType<PurchaseOrderState>().isEmpty()
                     "the transaction is signed by the invoice owner" using (command.signers.contains(issueOutput.owner.owningKey))
                     "the buyer and buyer must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
                     "the invoice ID must not be blank" using (issueOutput.props.invoiceID.isNotEmpty())
@@ -61,12 +60,12 @@ class InvoiceContract : Contract {
                 }
             }
 
-            is Commands.LockInvoice -> {
+            is Commands.LockPurchaseOrder -> {
                 if (tx.outputs.size != 2) {
                     throw IllegalArgumentException("Failed requirement: during Loc Request")
                 }
-                val invoiceInput: InvoiceState = tx.inputsOfType<InvoiceState>().single()
-                val invoiceOutput: InvoiceState = tx.outputsOfType<InvoiceState>().single()
+                val invoiceInput = tx.inputsOfType<PurchaseOrderState>().single()
+                val invoiceOutput = tx.outputsOfType<PurchaseOrderState>().single()
 
                 requireThat {
                     "input invoice must be marked as consumable" using (invoiceInput.consumable)

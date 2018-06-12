@@ -1,12 +1,11 @@
 package eloc.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import eloc.contract.InvoiceContract
 import eloc.contract.LetterOfCreditApplicationContract
-import eloc.contract.LetterOfCreditContract
-import eloc.state.InvoiceState
+import eloc.contract.PurchaseOrderContract
 import eloc.state.LetterOfCreditApplicationProperties
 import eloc.state.LetterOfCreditApplicationState
+import eloc.state.PurchaseOrderState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowLogic
@@ -23,17 +22,16 @@ import java.time.Instant
 @StartableByRPC
 class ApplyForLoCFlow(val beneficiaryName: String, val issuingBankName: String, val advisingBankName: String,
                       val applicationProperties: LetterOfCreditApplicationProperties) : FlowLogic<SignedTransaction>() {
-    companion object {
-        object GENERATING_APPLICATION_TRANSACTION : ProgressTracker.Step("Generating LOC application transaction.")
-        object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with our key.")
-        object NOTARIZING_TRANSACTION : ProgressTracker.Step("Sending it to the notary.")
-        object RECORDING_TRANSACTION : ProgressTracker.Step("Recording transaction.")
-    }
 
-    override val progressTracker = ProgressTracker(GENERATING_APPLICATION_TRANSACTION, SIGNING_TRANSACTION, NOTARIZING_TRANSACTION, RECORDING_TRANSACTION)
+    override val progressTracker = ProgressTracker(GETTING_NOTARY, GETTING_COUNTERPARTIES, GENERATING_TRANSACTION,
+            VERIFYING_TRANSACTION, SIGNING_TRANSACTION, FINALISING_TRANSACTION)
 
     @Suspendable
     override fun call(): SignedTransaction {
+        progressTracker.currentStep = GETTING_NOTARY
+        val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+        progressTracker.currentStep = GETTING_COUNTERPARTIES
         val beneficiary = serviceHub.identityService.partiesFromName(beneficiaryName, false).singleOrNull()
                 ?: throw IllegalArgumentException("No exact match found for beneficiary name $beneficiaryName.")
         val issuingBank = serviceHub.identityService.partiesFromName(issuingBankName, false).singleOrNull()
@@ -41,6 +39,7 @@ class ApplyForLoCFlow(val beneficiaryName: String, val issuingBankName: String, 
         val advisingBank = serviceHub.identityService.partiesFromName(advisingBankName, false).singleOrNull()
                 ?: throw IllegalArgumentException("No exact match found for advising bank name $advisingBankName.")
 
+        progressTracker.currentStep = GENERATING_TRANSACTION
         val application = LetterOfCreditApplicationState(
                 applicant = ourIdentity,
                 beneficiary = beneficiary,
@@ -48,44 +47,33 @@ class ApplyForLoCFlow(val beneficiaryName: String, val issuingBankName: String, 
                 advisingBank = advisingBank,
                 props = applicationProperties)
 
-        progressTracker.currentStep = GENERATING_APPLICATION_TRANSACTION
-        // Step 1. Get a reference to the notary service on our network and our key pair.
-        val notary = serviceHub.networkMapCache.notaryIdentities.first()
-
-        // Step 2. Create a new TransactionBuilder object.
         val builder = TransactionBuilder(notary)
         builder.setTimeWindow(Instant.now(), Duration.ofSeconds(60))
 
-        // Step 3. Create command
         val issueCommand = Command(LetterOfCreditApplicationContract.Commands.Apply(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
-        val invoiceCommand = Command(InvoiceContract.Commands.LockInvoice(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
+        val purchaseOrderCommand = Command(PurchaseOrderContract.Commands.LockPurchaseOrder(), listOf(serviceHub.myInfo.legalIdentities.first().owningKey))
 
-        // Step 4. Add original invoice to the input state. Invoice stateRef is present in the "application" object
         // TODO: Can change this to querying using a schema.
-        val invoices = serviceHub.vaultService.queryBy<InvoiceState>().states
-        val invoiceStateAndRef = invoices.find { stateAndRef -> stateAndRef.state.data.props.invoiceID == application.props.letterOfCreditApplicationID }
-                ?: throw IllegalArgumentException("No invoice with ID ${application.props.letterOfCreditApplicationID} found.")
-        builder.addInputState(invoiceStateAndRef)
+        val purchaseOrders = serviceHub.vaultService.queryBy<PurchaseOrderState>().states
+        val purchaseOrderStateAndRef = purchaseOrders.find { stateAndRef -> stateAndRef.state.data.props.invoiceID == application.props.letterOfCreditApplicationID }
+                ?: throw IllegalArgumentException("No purchase order with ID ${application.props.letterOfCreditApplicationID} found.")
+        builder.addInputState(purchaseOrderStateAndRef)
 
-        //Step5. Add invoice state to the output with Issuing Bank as a participant
-        val outputInvoiceState = invoiceStateAndRef.state.data.copy(participants = invoiceStateAndRef.state.data.participants +  application.issuer, consumable = false)
-        builder.addOutputState(outputInvoiceState, InvoiceContract.CONTRACT_ID)
-        builder.addCommand(invoiceCommand)
+        val outputPurchaseOrderState = purchaseOrderStateAndRef.state.data.copy(participants = purchaseOrderStateAndRef.state.data.participants +  application.issuer, consumable = false)
+        builder.addOutputState(outputPurchaseOrderState, PurchaseOrderContract.CONTRACT_ID)
+        builder.addCommand(purchaseOrderCommand)
 
-        // Step 6. Add the application as an output state, as well as a command to the transaction builder.
         val state = LetterOfCreditApplicationState(application.applicant, application.issuer, application.beneficiary, application.advisingBank, application.props)
         builder.addOutputState(state, LetterOfCreditApplicationContract.CONTRACT_ID)
         builder.addCommand(issueCommand)
 
-        // Step 7. Verify
+        progressTracker.currentStep = VERIFYING_TRANSACTION
         builder.verify(serviceHub)
 
-        // Step 8. Sign transaction
+        progressTracker.currentStep = SIGNING_TRANSACTION
         val stx = serviceHub.signInitialTransaction(builder)
 
-        // Step 9. Assuming no exceptions, we can now finalise the transaction.
-        progressTracker.currentStep = RECORDING_TRANSACTION
-
+        progressTracker.currentStep = FINALISING_TRANSACTION
         return subFlow(FinalityFlow(stx))
     }
 }

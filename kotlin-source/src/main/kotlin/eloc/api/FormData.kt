@@ -23,10 +23,10 @@ import java.util.*
 /** These classes capture the JSON form data passed from the front-end. */
 
 /**
- * The invoice form data that is submitted by the front-end to create an
+ * The purchase order form data that is submitted by the front-end to create an
  * invoice state.
  */
-data class InvoiceData(
+data class PurchaseOrderData(
         val invoiceId: String,
         val sellerName: String,
         val sellerAddress: String,
@@ -41,10 +41,10 @@ data class InvoiceData(
         val goodsGrossWeight: Int) {
 
     /**
-     * Converts the [InvoiceData] submitted from the front-end into the
-     * properties for an [InvoiceState].
+     * Converts the [PurchaseOrderData] submitted from the front-end into the
+     * properties for an [PurchaseOrderState].
      */
-    fun toInvoiceProperties() = InvoiceProperties(
+    fun toPurchaseOrderProperties() = PurchaseOrderProperties(
             invoiceID = invoiceId,
             seller =Company(sellerName, sellerAddress, ""),
             buyer = Company(buyerName, buyerAddress, ""),
