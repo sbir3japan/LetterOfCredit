@@ -57,7 +57,7 @@ class GoldenPath {
     }
 
     private val purchaseOrderProperties = PurchaseOrderProperties(
-            invoiceID = "123",
+            purchaseOrderID = "123",
             seller = Company("Lok Ma Exporters", "123 Main St. Shenzhen, China", ""),
             buyer = Company("Analog Importers", "3 Smithdown Road. Liverpool, L2 6RE", ""),
             invoiceDate = LocalDate.now(),
@@ -74,7 +74,7 @@ class GoldenPath {
     )
 
     private val letterOfCreditApplicationProperties = LetterOfCreditApplicationProperties(
-            letterOfCreditApplicationID = purchaseOrderProperties.invoiceID,
+            letterOfCreditApplicationID = purchaseOrderProperties.purchaseOrderID,
             applicationDate = LocalDate.now(),
             typeCredit = SIGHT,
             expiryDate = LocalDate.MAX,
@@ -86,7 +86,7 @@ class GoldenPath {
             descriptionGoods = listOf(
                     PricedGood(
                             "OLED 6\" Screens",
-                            purchaseOrderProperties.invoiceID,
+                            purchaseOrderProperties.purchaseOrderID,
                             10000,
                             400.DOLLARS,
                             Weight(30.0, KG)
@@ -97,7 +97,7 @@ class GoldenPath {
     )
 
     private val billOfLadingProperties = BillOfLadingProperties(
-            billOfLadingID = purchaseOrderProperties.invoiceID,
+            billOfLadingID = purchaseOrderProperties.purchaseOrderID,
             issueDate = LocalDate.now(),
             carrierOwner = "Alice Shipping",
             nameOfVessel = "SurfRider",

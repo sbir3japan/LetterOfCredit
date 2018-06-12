@@ -27,7 +27,7 @@ import java.util.*
  * invoice state.
  */
 data class PurchaseOrderData(
-        val invoiceId: String,
+        val purchaseOrderID: String,
         val sellerName: String,
         val sellerAddress: String,
         val buyerName: String,
@@ -45,7 +45,7 @@ data class PurchaseOrderData(
      * properties for an [PurchaseOrderState].
      */
     fun toPurchaseOrderProperties() = PurchaseOrderProperties(
-            invoiceID = invoiceId,
+            purchaseOrderID = purchaseOrderID,
             seller =Company(sellerName, sellerAddress, ""),
             buyer = Company(buyerName, buyerAddress, ""),
             invoiceDate = LocalDate.parse(invoiceDate.substringBefore('T')),

@@ -55,7 +55,7 @@ class ApplyForLoCFlow(val beneficiaryName: String, val issuingBankName: String, 
 
         // TODO: Can change this to querying using a schema.
         val purchaseOrders = serviceHub.vaultService.queryBy<PurchaseOrderState>().states
-        val purchaseOrderStateAndRef = purchaseOrders.find { stateAndRef -> stateAndRef.state.data.props.invoiceID == application.props.letterOfCreditApplicationID }
+        val purchaseOrderStateAndRef = purchaseOrders.find { stateAndRef -> stateAndRef.state.data.props.purchaseOrderID == application.props.letterOfCreditApplicationID }
                 ?: throw IllegalArgumentException("No purchase order with ID ${application.props.letterOfCreditApplicationID} found.")
         builder.addInputState(purchaseOrderStateAndRef)
 

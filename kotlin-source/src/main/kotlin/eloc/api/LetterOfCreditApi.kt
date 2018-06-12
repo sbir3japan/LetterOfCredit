@@ -127,7 +127,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
     @Path("get-invoice")
     @Produces(MediaType.APPLICATION_JSON)
     fun getPurchaseOrder(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
-            { stateAndRef: StateAndRef<PurchaseOrderState> -> stateAndRef.state.data.props.invoiceID == ref }
+            { stateAndRef: StateAndRef<PurchaseOrderState> -> stateAndRef.state.data.props.purchaseOrderID == ref }
     )
 
     /**

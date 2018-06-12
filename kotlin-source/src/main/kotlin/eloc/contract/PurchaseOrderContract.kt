@@ -52,7 +52,7 @@ class PurchaseOrderContract : Contract {
                     "there is no input state" using tx.inputsOfType<PurchaseOrderState>().isEmpty()
                     "the transaction is signed by the invoice owner" using (command.signers.contains(issueOutput.owner.owningKey))
                     "the buyer and buyer must be different" using (issueOutput.props.buyer.name != issueOutput.props.seller.name)
-                    "the invoice ID must not be blank" using (issueOutput.props.invoiceID.isNotEmpty())
+                    "the invoice ID must not be blank" using (issueOutput.props.purchaseOrderID.isNotEmpty())
                     "the term must be a positive number" using (issueOutput.props.term > 0)
                     "the loc date must be in the future" using (issueOutput.props.payDate.atStartOfDay().toInstant(ZoneOffset.UTC)
                             > time)

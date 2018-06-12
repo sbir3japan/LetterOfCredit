@@ -34,7 +34,7 @@ class ApproveLoCFlow(val reference: String) : FlowLogic<SignedTransaction>() {
         } ?: throw IllegalArgumentException("No letter-of-credit application with ID $reference found.")
 
         val purchaseOrderStateAndRef = serviceHub.vaultService.queryBy<PurchaseOrderState>().states.find {
-            it.state.data.props.invoiceID == reference
+            it.state.data.props.purchaseOrderID == reference
         } ?: throw IllegalArgumentException("No purchase order with ID $reference found.")
 
         val application = applicationStateAndRef.state.data

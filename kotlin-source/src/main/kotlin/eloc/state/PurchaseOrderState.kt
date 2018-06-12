@@ -21,7 +21,7 @@ data class PurchaseOrderState(
 
 @CordaSerializable
 data class PurchaseOrderProperties(
-        val invoiceID: String,
+        val purchaseOrderID: String,
         val seller: Company,
         val buyer: Company,
         val invoiceDate: LocalDate,
