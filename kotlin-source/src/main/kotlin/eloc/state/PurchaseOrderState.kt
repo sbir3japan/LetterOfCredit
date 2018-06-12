@@ -10,22 +10,22 @@ import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import java.time.LocalDate
 
-data class InvoiceState(
+data class PurchaseOrderState(
         val owner: Party,
         val buyer: Party,
         val consumable: Boolean,
-        val props: InvoiceProperties,
+        val props: PurchaseOrderProperties,
         override val participants: List<AbstractParty> = listOf(owner, buyer)) : LinearState {
     override val linearId = UniqueIdentifier()
 }
 
 @CordaSerializable
-data class InvoiceProperties(
-        val invoiceID: String,
+data class PurchaseOrderProperties(
+        val purchaseOrderID: String,
         val seller: Company,
         val buyer: Company,
-        val invoiceDate: LocalDate,
+        val purchaseOrderDate: LocalDate,
         val term: Long,
         val goods: List<PricedGood>) {
-    val payDate = invoiceDate.plusDays(term)
+    val payDate = purchaseOrderDate.plusDays(term)
 }

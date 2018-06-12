@@ -23,16 +23,16 @@ import java.util.*
 /** These classes capture the JSON form data passed from the front-end. */
 
 /**
- * The invoice form data that is submitted by the front-end to create an
+ * The purchase order form data that is submitted by the front-end to create an
  * invoice state.
  */
-data class InvoiceData(
-        val invoiceId: String,
+data class PurchaseOrderData(
+        val purchaseOrderID: String,
         val sellerName: String,
         val sellerAddress: String,
         val buyerName: String,
         val buyerAddress: String,
-        val invoiceDate: String,
+        val purchaseOrderDate: String,
         val term: Int,
         val goodsDescription: String,
         val goodsPurchaseOrderRef: String,
@@ -41,14 +41,14 @@ data class InvoiceData(
         val goodsGrossWeight: Int) {
 
     /**
-     * Converts the [InvoiceData] submitted from the front-end into the
-     * properties for an [InvoiceState].
+     * Converts the [PurchaseOrderData] submitted from the front-end into the
+     * properties for an [PurchaseOrderState].
      */
-    fun toInvoiceProperties() = InvoiceProperties(
-            invoiceID = invoiceId,
+    fun toPurchaseOrderProperties() = PurchaseOrderProperties(
+            purchaseOrderID = purchaseOrderID,
             seller =Company(sellerName, sellerAddress, ""),
             buyer = Company(buyerName, buyerAddress, ""),
-            invoiceDate = LocalDate.parse(invoiceDate.substringBefore('T')),
+            purchaseOrderDate = LocalDate.parse(purchaseOrderDate.substringBefore('T')),
             term = term.toLong(),
             goods = listOf(PricedGood(goodsDescription, goodsPurchaseOrderRef, goodsQuantity,
                     goodsUnitPrice.DOLLARS, Weight(goodsGrossWeight.toDouble(),

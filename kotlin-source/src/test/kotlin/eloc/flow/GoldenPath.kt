@@ -10,7 +10,7 @@ import eloc.LetterOfCreditDataStructures.Good
 import eloc.LetterOfCreditDataStructures.Weight
 import eloc.LetterOfCreditDataStructures.WeightUnit.KG
 import eloc.state.BillOfLadingProperties
-import eloc.state.InvoiceProperties
+import eloc.state.PurchaseOrderProperties
 import eloc.state.LetterOfCreditApplicationProperties
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
@@ -56,11 +56,11 @@ class GoldenPath {
         return future.getOrThrow()
     }
 
-    private val invoiceProperties = InvoiceProperties(
-            invoiceID = "123",
+    private val purchaseOrderProperties = PurchaseOrderProperties(
+            purchaseOrderID = "123",
             seller = Company("Lok Ma Exporters", "123 Main St. Shenzhen, China", ""),
             buyer = Company("Analog Importers", "3 Smithdown Road. Liverpool, L2 6RE", ""),
-            invoiceDate = LocalDate.now(),
+            purchaseOrderDate = LocalDate.now(),
             term = 5,
             goods = listOf(
                     PricedGood(
@@ -74,7 +74,7 @@ class GoldenPath {
     )
 
     private val letterOfCreditApplicationProperties = LetterOfCreditApplicationProperties(
-            letterOfCreditApplicationID = invoiceProperties.invoiceID,
+            letterOfCreditApplicationID = purchaseOrderProperties.purchaseOrderID,
             applicationDate = LocalDate.now(),
             typeCredit = SIGHT,
             expiryDate = LocalDate.MAX,
@@ -86,7 +86,7 @@ class GoldenPath {
             descriptionGoods = listOf(
                     PricedGood(
                             "OLED 6\" Screens",
-                            invoiceProperties.invoiceID,
+                            purchaseOrderProperties.purchaseOrderID,
                             10000,
                             400.DOLLARS,
                             Weight(30.0, KG)
@@ -97,7 +97,7 @@ class GoldenPath {
     )
 
     private val billOfLadingProperties = BillOfLadingProperties(
-            billOfLadingID = invoiceProperties.invoiceID,
+            billOfLadingID = purchaseOrderProperties.purchaseOrderID,
             issueDate = LocalDate.now(),
             carrierOwner = "Alice Shipping",
             nameOfVessel = "SurfRider",
@@ -121,7 +121,7 @@ class GoldenPath {
     @Test
     fun `travel golden path`() {
         // Creating the invoice.
-        val flow = CreateInvoiceFlow(buyer.org, invoiceProperties)
+        val flow = CreatePurchaseOrderFlow(buyer.org, purchaseOrderProperties)
         seller.runFlow(flow)
 
         // Applying for the letter of credit.
