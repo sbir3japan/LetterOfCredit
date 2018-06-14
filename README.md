@@ -4,7 +4,7 @@
 
 This is a CorDapp that uses a letter-of-credit business scenario to showcase Corda.
 
-NB: This CorDapp was written with the goal of creating a good demo, not a commercial letter-of-credit application. A real letter-of-credit application would be structured differently, especially in terms of the contract code.
+This CorDapp was written with the goal of creating a good demo, not a commercial letter-of-credit application. A real letter-of-credit application would be structured differently, especially in terms of the contract code.
 
 ## Running the nodes:
 
