@@ -1,9 +1,9 @@
 package eloc.contract
 
-import eloc.state.InvoiceState
 import eloc.state.LetterOfCreditApplicationState
 import eloc.state.LetterOfCreditState
 import eloc.state.LetterOfCreditStatus
+import eloc.state.PurchaseOrderState
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 import net.corda.finance.contracts.asset.Cash
@@ -30,7 +30,7 @@ open class LetterOfCreditContract : Contract {
         when (command.value) {
             is Commands.Issue -> {
                 requireThat {
-                    val invoice = tx.inputsOfType<InvoiceState>().single()
+                    val invoice = tx.inputsOfType<PurchaseOrderState>().single()
                     val output = tx.outputsOfType<LetterOfCreditState>().single()
                     // confirms the LetterOfCreditApplication is included in the transaction
                     tx.inputsOfType<LetterOfCreditApplicationState>().single()
