@@ -15,7 +15,7 @@ If you receive error messages that say `Exception in thread "main" java.net.Bind
 
 ## Interacting with the nodes:
 
-Once all the nodes are started, go to `http://localhost:10014/web/loc/`.
+Once all the nodes are started, go to `http://localhost:10013/web/loc/`.
 
 ## Update process (development only)
 
