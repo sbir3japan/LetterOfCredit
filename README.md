@@ -18,9 +18,22 @@ have zombie Java processes. You can kill them using `killall java -9` on osX, or
 
 ## Interacting with the nodes:
 
-Run the front-end from the [front-end repo](https://github.com/corda/LetterOfCreditWeb).
+Once all the nodes are started, go to http://localhost:10014/web/loc/.
 
-## Updating the cash issuance CorDapp
+## Update process (development only)
+
+### Updating the web frontend
+
+If the [front-end](https://github.com/corda/LetterOfCreditWeb) has been modified, it needs to be redeployed onto the nodes. You do this by
+
+* Clone the [front-end project](https://github.com/corda/LetterOfCreditWeb)
+* Run `npm install` in the root folder of the project
+* Building the [front-end](https://github.com/corda/LetterOfCreditWeb) project by running `ng build --prod --aot --build-optimizer --base-href="/web/loc/"` from the root of the project
+* Navigate to the newly created 'dist' folder within the root of the [front-end](https://github.com/corda/LetterOfCreditWeb) project
+* Copy the entire contents of the 'dist' folder into the CorDapp project at 'LetterOfCredit\kotlin-source\src\main\resources\loc'
+* Redeploy CorDapp as above
+
+### Updating the cash issuance CorDapp
 
 * Clone the [cash issuance CorDapp](https://bitbucket.org/R3-CEV/wildfire)
   * This repository is currently private
