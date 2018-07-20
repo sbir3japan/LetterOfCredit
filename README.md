@@ -10,7 +10,9 @@ letter-of-credit application would be structured differently, especially in term
 ## Running the nodes:
 
 * Create the node driver by running `./gradlew buildExecutableJar` (osX) or `gradlew buildExecutableJar` (Windows)
-* Run the node driver using `java -Xmx8192m -jar kotlin-source/build/libs/eloc-demo.jar`
+* Run the node driver using `java -jar kotlin-source/build/libs/eloc-demo.jar`
+
+If you receive error messages that say `Exception in thread "main" java.net.BindException: Address already in use`, you have zombie Java processes. You can kill them using `killall java -9` on osX, or `wmic process where "name like '%java%'" delete` on Windows.
 
 If you receive error messages that say `Exception in thread "main" java.net.BindException: Address already in use`, you 
 have zombie Java processes. You can kill them using `killall java -9` on osX, or 
