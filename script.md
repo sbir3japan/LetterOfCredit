@@ -1,6 +1,6 @@
 # Demo script
 
-[Before we start](before-we-start)
+* [Before we start](#before-we-start)
 * What are we going to show you?
 * How are we going to show it?
 * Running the demo
