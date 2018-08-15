@@ -1,22 +1,22 @@
 # Demo script
 
 * [Before we start](#before-we-start)
-* What are we going to show you?
-* How are we going to show it?
-* Running the demo
-  * The network map
-  * Issuing the purchase order
-  * Applying for a letter of credit
-  * Approving the letter of credit application
-  * Shipping the goods
-  * Unwinding the letter of credit (I)
-  * Transferring cash
-  * Unwinding the letter of credit (II)
-  * Recap
+* [What are we going to show you?](#what-are-we-going-to-show-you)
+* [How are we going to show it?](#how-are-we-going-to-show-it)
+* [Running the demo](#running-the-demo)
+  * [The network map](#the-network-map)
+  * [Issuing the purchase order](#issuing-the-purchase-order)
+  * [Applying for a letter of credit](#applying-for-a-letter-of-credit)
+  * [Approving the letter of credit application](#approving-the-letter-of-credit-application)
+  * [Shipping the goods](#shipping-the-goods)
+  * [Unwinding the letter of credit](#unwinding-the-letter-of-credit)
+  * [Transferring cash](#transferring-cash)
+  * [Unwinding the letter of credit redux](#unwinding-the-letter-of-credit-redux)
+  * [Recap](#recap)
 
 # Before we start
 
-Run the nodes and bring up the network map by following the instructions here: [https://github.com/corda/LetterOfCredit/blob/release/README.md](https://github.com/corda/LetterOfCredit/blob/release/README.md).
+Run the nodes and bring up the network map by following the instructions [in the README](https://github.com/corda/LetterOfCredit/blob/release/README.md).
 
 # What are we going to show you?
 
@@ -201,7 +201,7 @@ Instantly, the status of the letter of credit is updated to shipped. Every other
 
 We see that the status of the letter of credit has been updated.
 
-## Unwinding the letter of credit (I)
+## Unwinding the letter of credit
 
 **Key points introduced:** Atomicity, instant finality
 
@@ -286,7 +286,7 @@ We'll transfer some cash from the buyer's bank to the buyer so that he can pay o
 
 **<Click the seventh step, then click 'Transfer', then transfer USD2mn to Analog Imports>**
 
-## Unwinding the letter of credit (II)
+## Unwinding the letter of credit redux
 
 **Key points introduced:** N/A
 
