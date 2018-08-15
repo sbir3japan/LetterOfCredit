@@ -16,7 +16,8 @@ If you receive error messages that say `Exception in thread "main" java.net.Bind
 
 ## Interacting with the nodes:
 
-Once all the nodes are started, go to http://localhost:10014/web/loc/.
+Once all the nodes are started, go to http://localhost:10014/web/loc/. Follow the script here: 
+https://github.com/corda/LetterOfCredit/blob/release/script.md.
 
 ## Update process (development only)
 
