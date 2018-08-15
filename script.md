@@ -1,18 +1,18 @@
 # Demo script
 
-- Before we start
-- What are we going to show you?
-- How are we going to show it?
-- Running the demo
-  - The network map
-  - Issuing the purchase order
-  - Applying for a letter of credit
-  - Approving the letter of credit application
-  - Shipping the goods
-  - Unwinding the letter of credit (I)
-  - Transferring cash
-  - Unwinding the letter of credit (II)
-  - Recap
+* [Before we start](before-we-start)
+* What are we going to show you?
+* How are we going to show it?
+* Running the demo
+  * The network map
+  * Issuing the purchase order
+  * Applying for a letter of credit
+  * Approving the letter of credit application
+  * Shipping the goods
+  * Unwinding the letter of credit (I)
+  * Transferring cash
+  * Unwinding the letter of credit (II)
+  * Recap
 
 # Before we start
 
