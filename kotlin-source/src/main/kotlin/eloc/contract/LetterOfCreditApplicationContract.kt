@@ -25,7 +25,7 @@ class LetterOfCreditApplicationContract : Contract {
             is Commands.Apply -> requireThat {
                 val output = tx.outputsOfType<LetterOfCreditApplicationState>().single()
                 "there is one input state" using (tx.inputStates.size == 1)
-                // TODO: Additional checks around the input invoice.
+                // TODO: Additional checks around the input purchase order.
                 // TODO: Additional checks around total number of inputs/outputs.
             }
             is Commands.Approve -> {

@@ -30,7 +30,7 @@ class CreateBoLFlow(val buyerName: String, val advisingBankName: String, val iss
 
         progressTracker.currentStep = GETTING_COUNTERPARTIES
         val buyer = serviceHub.identityService.partiesFromName(buyerName, false).singleOrNull()
-                ?: throw IllegalArgumentException("No exact match found for buyer name $buyerName.")
+                ?: throw IllegalArgumentException("No exact match found for seller name $buyerName.")
         val advisingBank = serviceHub.identityService.partiesFromName(advisingBankName, false).singleOrNull()
                 ?: throw IllegalArgumentException("No exact match found for advising bank name $advisingBankName.")
         val issuingBank = serviceHub.identityService.partiesFromName(issuingBankName, false).singleOrNull()

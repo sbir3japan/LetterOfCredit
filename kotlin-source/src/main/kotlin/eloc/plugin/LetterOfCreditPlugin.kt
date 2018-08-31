@@ -12,7 +12,7 @@ class LetterOfCreditPlugin : WebServerPluginRegistry {
     override val staticServeDirs = mapOf(
             "loc" to javaClass.classLoader.getResource("loc").toExternalForm(),
             "loc/seller" to javaClass.classLoader.getResource("loc").toExternalForm(),
-            "loc/buyer" to javaClass.classLoader.getResource("loc").toExternalForm(),
+            "loc/seller" to javaClass.classLoader.getResource("loc").toExternalForm(),
             "loc/advising" to javaClass.classLoader.getResource("loc").toExternalForm(),
             "loc/issuing" to javaClass.classLoader.getResource("loc").toExternalForm()
     )

@@ -15,7 +15,7 @@ import net.corda.core.utilities.ProgressTracker
 
 @InitiatingFlow
 @StartableByRPC
-class CreatePurchaseOrderFlow(val buyerName: String, val purchaseOrderProperties: PurchaseOrderProperties) : FlowLogic<SignedTransaction>() {
+class CreatePurchaseOrderFlow(val sellerName: String, val purchaseOrderProperties: PurchaseOrderProperties) : FlowLogic<SignedTransaction>() {
 
     override val progressTracker: ProgressTracker = ProgressTracker(GETTING_NOTARY, GENERATING_TRANSACTION,
             VERIFYING_TRANSACTION, SIGNING_TRANSACTION, FINALISING_TRANSACTION)
@@ -26,9 +26,9 @@ class CreatePurchaseOrderFlow(val buyerName: String, val purchaseOrderProperties
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
         progressTracker.currentStep = GENERATING_TRANSACTION
-        val buyer = serviceHub.identityService.partiesFromName(buyerName, false).singleOrNull()
-                ?: throw IllegalArgumentException("No exact match found for buyer name $buyerName.")
-        val purchaseOrder = PurchaseOrderState(ourIdentity, buyer, true, purchaseOrderProperties)
+        val seller = serviceHub.identityService.partiesFromName(sellerName, false).singleOrNull()
+                ?: throw IllegalArgumentException("No exact match found for seller name $sellerName.")
+        val purchaseOrder = PurchaseOrderState(ourIdentity, seller, true, purchaseOrderProperties)
         val issueCommand = Command(PurchaseOrderContract.Commands.Issue(), listOf(ourIdentity.owningKey))
 
         val builder = TransactionBuilder(notary)

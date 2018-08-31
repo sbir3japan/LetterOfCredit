@@ -23,8 +23,8 @@ import java.util.*
 /** These classes capture the JSON form data passed from the front-end. */
 
 /**
- * The purchase order form data that is submitted by the front-end to create an
- * invoice state.
+ * The purchase order form data that is submitted by the front-end to create a
+ * purchase order state.
  */
 data class PurchaseOrderData(
         val purchaseOrderID: String,

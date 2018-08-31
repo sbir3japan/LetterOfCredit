@@ -91,7 +91,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
      * Displays all purchase order states that exist in the node's vault.
      */
     @GET
-    @Path("invoices")
+    @Path("purchase-orders")
     @Produces(MediaType.APPLICATION_JSON)
     fun getPurchaseOrders() = getAllStatesOfTypeWithHashesAndSigs<PurchaseOrderState>()
 
@@ -124,7 +124,7 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
      * Fetches the purchase order state that matches ref from the node's vault.
      */
     @GET
-    @Path("get-invoice")
+    @Path("get-purchase-order")
     @Produces(MediaType.APPLICATION_JSON)
     fun getPurchaseOrder(@QueryParam(value = "ref") ref: String) = getStateOfTypeWithHashAndSigs(ref,
             { stateAndRef: StateAndRef<PurchaseOrderState> -> stateAndRef.state.data.props.purchaseOrderID == ref }
@@ -180,8 +180,8 @@ class LetterOfCreditApi(val rpcOps: CordaRPCOps) {
 
     @POST
     @Path("create-trade")
-    fun createTrade(invoice: PurchaseOrderData): Response {
-        val flowFuture = rpcOps.startFlow(::CreatePurchaseOrderFlow, invoice.buyerName, invoice.toPurchaseOrderProperties()).returnValue
+    fun createTrade(purchaseOrder: PurchaseOrderData): Response {
+        val flowFuture = rpcOps.startFlow(::CreatePurchaseOrderFlow, purchaseOrder.sellerName, purchaseOrder.toPurchaseOrderProperties()).returnValue
         val result = try {
             flowFuture.getOrThrow()
         } catch (e: Exception) {

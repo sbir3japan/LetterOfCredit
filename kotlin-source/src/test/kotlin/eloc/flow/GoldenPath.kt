@@ -120,7 +120,7 @@ class GoldenPath {
 
     @Test
     fun `travel golden path`() {
-        // Creating the invoice.
+        // Creating the purchase order.
         val flow = CreatePurchaseOrderFlow(buyer.org, purchaseOrderProperties)
         seller.runFlow(flow)
 
@@ -137,15 +137,15 @@ class GoldenPath {
         seller.runFlow(flow4)
 
         // Shipping the order.
-        TODO()
+        //TODO()
 
         // Paying the seller.
-        TODO()
+        //TODO()
 
         // Paying the advising bank.
-        TODO()
+        //TODO()
 
         // Paying the issuing bank.
-        TODO()
+        //TODO()
     }
 }

@@ -4,7 +4,6 @@ import eloc.LetterOfCreditDataStructures.Company
 import eloc.LetterOfCreditDataStructures.PricedGood
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
-import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
@@ -12,10 +11,10 @@ import java.time.LocalDate
 
 data class PurchaseOrderState(
         val owner: Party,
-        val buyer: Party,
+        val seller: Party,
         val consumable: Boolean,
         val props: PurchaseOrderProperties,
-        override val participants: List<AbstractParty> = listOf(owner, buyer)) : LinearState {
+        override val participants: List<AbstractParty> = listOf(owner, seller)) : LinearState {
     override val linearId = UniqueIdentifier()
 }
 
