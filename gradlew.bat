@@ -4,6 +4,7 @@
 @rem  Gradle startup script for Windows
 @rem
 @rem ##########################################################################
+set JAVA_OPTS=-DproxyHost=YOURPROXYSERVER -DproxyPort=YOURPROXYSERVERPORT -Dhttp.proxyUser=YOURUSERID -Dhttp.proxyPassword=YOURPASSWORD -Dhttps.proxyUser=YOURUSERID -Dhttps.proxyPassword=YOURPASSWORD
 
 @rem Set local scope for the variables with windows NT shell
 if "%OS%"=="Windows_NT" setlocal
